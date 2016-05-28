@@ -1,7 +1,9 @@
 package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.AppEstate;
+import com.danielflower.apprunner.router.FileSandbox;
 import com.danielflower.apprunner.router.web.v1.AppResource;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
@@ -12,8 +14,11 @@ import scaffolding.MockAppDescription;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +27,7 @@ public class AppResourceTest {
 
     private MockAppDescription myApp = new MockAppDescription("my-app", "git://something/.git");
     private MockAppDescription anApp = new MockAppDescription("an-app", "git://something/.git");
-    private AppEstate estate = new AppEstate(new ProxyMap(), WebServerTest.fileSandbox());
+    private AppEstate estate = new AppEstate(new ProxyMap(), fileSandbox());
     private AppResource appResource = new AppResource(estate);
 
     @Test
@@ -165,5 +170,15 @@ public class AppResourceTest {
         public URI relativize(URI uri) {
             return null;
         }
+    }
+
+    public static FileSandbox fileSandbox() {
+        File root = new File("target/test-sandboxes/" + UUID.randomUUID());
+        try {
+            FileUtils.forceMkdir(root);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new FileSandbox(root);
     }
 }

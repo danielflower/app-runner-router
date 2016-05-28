@@ -6,6 +6,7 @@ import org.eclipse.jetty.client.util.FormContentProvider;
 import org.eclipse.jetty.util.Fields;
 
 import java.net.URI;
+import java.net.URLEncoder;
 
 public class RestClient {
 
@@ -67,7 +68,7 @@ public class RestClient {
         Fields fields = new Fields();
         fields.add("id", id);
         fields.add("url", url.toString());
-        fields.add("maxInstances", String.valueOf(maxInstances));
+        fields.add("maxApps", String.valueOf(maxInstances));
         return client.POST(appRunnerUrl + "/api/v1/runners")
             .content(new FormContentProvider(fields)).send();
     }
@@ -78,5 +79,16 @@ public class RestClient {
         } catch (Exception e) {
             // ignore
         }
+    }
+
+    public ContentResponse getAppRunners() throws Exception {
+        return get("/api/v1/runners");
+    }
+    public ContentResponse getAppRunner(String id) throws Exception {
+        return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));
+    }
+
+    public ContentResponse deleteRunner(String id) throws Exception {
+        return client.newRequest(appRunnerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
     }
 }

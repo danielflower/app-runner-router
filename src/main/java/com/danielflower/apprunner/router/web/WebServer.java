@@ -3,6 +3,7 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
 import com.danielflower.apprunner.router.web.v1.AppResource;
+import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
@@ -38,13 +39,15 @@ public class WebServer implements AutoCloseable {
     private Server jettyServer;
     private final String defaultAppName;
     private final SystemResource systemResource;
+    private final RunnerResource runnerResource;
     private final AppResource appResource;
 
-    public WebServer(int port, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, AppResource appResource) {
+    public WebServer(int port, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource, AppResource appResource) {
         this.port = port;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
         this.systemResource = systemResource;
+        this.runnerResource = runnerResource;
         this.appResource = appResource;
         jettyServer = new Server(port);
     }
@@ -78,6 +81,7 @@ public class WebServer implements AutoCloseable {
         ResourceConfig rc = new ResourceConfig();
         rc.register(systemResource);
         rc.register(appResource);
+        rc.register(runnerResource);
         rc.register(JacksonFeature.class);
         rc.register(CORSFilter.class);
         SwaggerDocs.registerSwaggerJsonResource(rc);
