@@ -1,11 +1,13 @@
 package com.danielflower.apprunner.router.web;
 
+import com.danielflower.apprunner.router.mgmt.Cluster;
 import org.junit.Test;
 
 import javax.servlet.*;
 import javax.servlet.http.*;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -22,8 +24,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ReverseProxyTest {
 
-    ProxyMap proxyMap = new ProxyMap();
-    ReverseProxy reverseProxy = new ReverseProxy(proxyMap);
+    private ProxyMap proxyMap = new ProxyMap();
+    private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
+    private Cluster cluster = Cluster.load(configFile);
+    private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap);
+
+    public ReverseProxyTest() throws IOException {
+    }
 
     @Test
     public void returnsNullIfNoValueInProxyMap() throws Exception {

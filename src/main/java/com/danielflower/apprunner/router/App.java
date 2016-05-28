@@ -35,7 +35,7 @@ public class App {
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"));
-        webServer = new WebServer(appRunnerPort, proxyMap, defaultAppName,
+        webServer = new WebServer(appRunnerPort, cluster, proxyMap, defaultAppName,
             new SystemResource(startupComplete), new RunnerResource(cluster), new AppResource(estate));
         webServer.start();
     }

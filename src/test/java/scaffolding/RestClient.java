@@ -22,11 +22,11 @@ public class RestClient {
     }
 
     private final HttpClient client;
-    private final String appRunnerUrl;
+    private final String routerUrl;
 
-    private RestClient(HttpClient client, String appRunnerUrl) {
+    private RestClient(HttpClient client, String routerUrl) {
         this.client = client;
-        this.appRunnerUrl = appRunnerUrl;
+        this.routerUrl = routerUrl;
     }
     public ContentResponse createApp(String gitUrl) throws Exception {
         return createApp(gitUrl, null);
@@ -38,38 +38,38 @@ public class RestClient {
         if (appName != null) {
             fields.add("appName", appName);
         }
-        return client.POST(appRunnerUrl + "/api/v1/apps")
+        return client.POST(routerUrl + "/api/v1/apps")
             .content(new FormContentProvider(fields)).send();
     }
 
     public ContentResponse deploy(String app) throws Exception {
-        return client.POST(appRunnerUrl + "/api/v1/apps/" + app + "/deploy")
+        return client.POST(routerUrl + "/api/v1/apps/" + app + "/deploy")
             .header("Accept", "application/json") // to simulate products like the Stash commit hook
             .send();
     }
 
     public ContentResponse stop(String app) throws Exception {
-        return client.newRequest(appRunnerUrl + "/api/v1/apps/" + app + "/stop").method("PUT").send();
+        return client.newRequest(routerUrl + "/api/v1/apps/" + app + "/stop").method("PUT").send();
     }
 
     public ContentResponse deleteApp(String appName) throws Exception {
-        return client.newRequest(appRunnerUrl + "/api/v1/apps/" + appName).method("DELETE").send();
+        return client.newRequest(routerUrl + "/api/v1/apps/" + appName).method("DELETE").send();
     }
 
     public ContentResponse homepage(String appName) throws Exception {
-        return client.GET(appRunnerUrl + "/" + appName + "/");
+        return client.GET(routerUrl + "/" + appName + "/");
     }
 
     public ContentResponse get(String url) throws Exception {
-        return client.GET(appRunnerUrl + url);
+        return client.GET(routerUrl + url);
     }
 
-    public ContentResponse registerAppRunner(String id, URI url, int maxInstances) throws Exception {
+    public ContentResponse registerRunner(String id, URI url, int maxInstances) throws Exception {
         Fields fields = new Fields();
         fields.add("id", id);
         fields.add("url", url.toString());
         fields.add("maxApps", String.valueOf(maxInstances));
-        return client.POST(appRunnerUrl + "/api/v1/runners")
+        return client.POST(routerUrl + "/api/v1/runners")
             .content(new FormContentProvider(fields)).send();
     }
 
@@ -84,11 +84,11 @@ public class RestClient {
     public ContentResponse getAppRunners() throws Exception {
         return get("/api/v1/runners");
     }
-    public ContentResponse getAppRunner(String id) throws Exception {
+    public ContentResponse getRunner(String id) throws Exception {
         return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));
     }
 
     public ContentResponse deleteRunner(String id) throws Exception {
-        return client.newRequest(appRunnerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
+        return client.newRequest(routerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
     }
 }

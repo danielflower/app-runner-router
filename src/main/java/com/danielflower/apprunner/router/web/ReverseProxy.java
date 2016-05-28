@@ -1,5 +1,6 @@
 package com.danielflower.apprunner.router.web;
 
+import com.danielflower.apprunner.router.mgmt.Cluster;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
@@ -19,9 +20,14 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 public class ReverseProxy extends AsyncProxyServlet {
     public static final Logger log = LoggerFactory.getLogger(ReverseProxy.class);
 
-    private final ProxyMap proxyMap;
+    public static final Pattern APP_REQUEST = Pattern.compile("/([^/?]+)(.*)");
+    public static final Pattern APP_API = Pattern.compile("/api/v1/apps/([^/?]+)(.*)");
 
-    public ReverseProxy(ProxyMap proxyMap) {
+    private final ProxyMap proxyMap;
+    private final Cluster cluster;
+
+    public ReverseProxy(Cluster cluster, ProxyMap proxyMap) {
+        this.cluster = cluster;
         this.proxyMap = proxyMap;
     }
 
@@ -41,8 +47,8 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     protected String rewriteTarget(HttpServletRequest clientRequest) {
         String uri = clientRequest.getRequestURI();
-        Pattern pattern = Pattern.compile("/([^/?]+)(.*)");
-        Matcher matcher = pattern.matcher(uri);
+        log.info(clientRequest.getMethod() + " " + uri);
+        Matcher matcher = APP_REQUEST.matcher(uri);
         if (matcher.matches()) {
             String prefix = matcher.group(1);
             URL url = proxyMap.get(prefix);
@@ -52,13 +58,25 @@ public class ReverseProxy extends AsyncProxyServlet {
                 log.info("Proxying to " + newTarget);
                 return newTarget;
             }
+        } else if (uri.equals("/api/v1/apps")) {
+            String method = clientRequest.getMethod().toUpperCase();
+            if (method.equals("POST")) {
+                return cluster.getRunners().get(0) + uri;
+            }
+        } else {
+            Matcher appApiMatcher = APP_API.matcher(uri);
+            if (appApiMatcher.matches()) {
+                String prefix = appApiMatcher.group(1);
+                // TODO: proxy to app runner
+                return cluster.getRunners().get(0) + uri;
+            }
         }
         log.info("No proxy target configured for " + uri);
         return null;
     }
 
     protected void onProxyRewriteFailed(HttpServletRequest clientRequest, HttpServletResponse proxyResponse) {
-        // this is called if rewriteTarget returns null2
+        // this is called if rewriteTarget returns null
         try {
             proxyResponse.getWriter().write("404 Not Found");
         } catch (IOException e) {

@@ -2,15 +2,16 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
+import com.danielflower.apprunner.router.io.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import scaffolding.AppRepo;
 import scaffolding.AppRunnerInstance;
 import scaffolding.RestClient;
 
@@ -25,19 +26,18 @@ import static org.junit.Assert.assertThat;
 import static scaffolding.ContentResponseMatcher.equalTo;
 
 public class RoutingTest {
-    private static final Logger log = LoggerFactory.getLogger(RoutingTest.class);
-
     private AppRunnerInstance appRunner1;
     private AppRunnerInstance appRunner2;
     private App router;
     private RestClient client;
+    private int routerPort;
 
     @Before
     public void create() throws Exception {
         appRunner1 = new AppRunnerInstance("app-runner-1").start();
         appRunner2 = new AppRunnerInstance("app-runner-2").start();
 
-        int routerPort = WebServer.getAFreePort();
+        routerPort = WebServer.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
@@ -59,11 +59,10 @@ public class RoutingTest {
 
     @Test
     public void appsAreRoutedToIndividualAppRunners() throws Exception {
-        ContentResponse resp = client.get("/");
-        assertThat(resp, equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
+        assertThat(client.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
 
-        assertThat(client.registerAppRunner(appRunner1.id(), appRunner1.url(), 1), equalTo(201, containsString(appRunner1.id())));
-        assertThat(client.registerAppRunner(appRunner2.id(), appRunner2.url(), 2), equalTo(201, containsString(appRunner2.id())));
+        assertThat(client.registerRunner(appRunner1.id(), appRunner1.url(), 1), equalTo(201, containsString(appRunner1.id())));
+        assertThat(client.registerRunner(appRunner2.id(), appRunner2.url(), 2), equalTo(201, containsString(appRunner2.id())));
 
 
         ContentResponse appRunners = client.getAppRunners();
@@ -73,14 +72,33 @@ public class RoutingTest {
             "  { 'id': 'app-runner-2', 'url': '" + appRunner2.url().toString() + "', 'maxApps': 2 }" +
             "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
 
-        ContentResponse appRunner = client.getAppRunner("app-runner-2");
+        ContentResponse appRunner = client.getRunner("app-runner-2");
         assertThat(appRunner.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'id': 'app-runner-2', 'url': '" + appRunner2.url().toString() + "', 'maxApps': 2 }"
             , appRunner.getContentAsString(), JSONCompareMode.LENIENT);
 
         assertThat(client.deleteRunner(appRunner2.id()), equalTo(200, containsString(appRunner2.id())));
-        assertThat(client.getAppRunner(appRunner2.id()), equalTo(404, containsString(appRunner2.id())));
+        assertThat(client.getRunner(appRunner2.id()), equalTo(404, containsString(appRunner2.id())));
+        assertThat(client.deleteRunner(appRunner1.id()), equalTo(200, containsString(appRunner1.id())));
     }
 
+    @Test
+    public void appsCanBeAddedToTheRouterAndItWillDistributeThoseToTheRunners() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+        client.registerRunner(appRunner2.id(), appRunner2.url(), 1);
+
+        AppRepo app1 = AppRepo.create("maven");
+//        AppRepo app2 = AppRepo.create("maven");
+
+        ContentResponse app1Creation = client.createApp(app1.gitUrl(), "app1");
+        Thread.sleep(10000000);
+        assertThat(app1Creation.getStatus(), is(201));
+        JSONObject app1Json = new JSONObject(app1Creation.getContentAsString());
+        System.out.println("app1Json = " + app1Json.toString(4));
+
+        client.deploy("app1");
+        Waiter.waitForApp("app1", routerPort);
+        assertThat(client.get("/app1/"), equalTo(200, containsString("My Maven App")));
+    }
 
 }
