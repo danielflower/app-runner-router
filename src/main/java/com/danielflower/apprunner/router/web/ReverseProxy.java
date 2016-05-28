@@ -49,7 +49,21 @@ public class ReverseProxy extends AsyncProxyServlet {
         String uri = clientRequest.getRequestURI();
         log.info(clientRequest.getMethod() + " " + uri);
         Matcher matcher = APP_REQUEST.matcher(uri);
-        if (matcher.matches()) {
+        if (uri.startsWith("/api/")) {
+            if (uri.equals("/api/v1/apps")) {
+                String method = clientRequest.getMethod().toUpperCase();
+                if (method.equals("POST")) {
+                    return cluster.getRunners().get(0).url.resolve(uri).toString();
+                }
+            } else {
+                Matcher appApiMatcher = APP_API.matcher(uri);
+                if (appApiMatcher.matches()) {
+                    String prefix = appApiMatcher.group(1);
+                    // TODO: proxy to app runner
+                    return cluster.getRunners().get(0).url.resolve(uri).toString();
+                }
+            }
+        } else if (matcher.matches()) {
             String prefix = matcher.group(1);
             URL url = proxyMap.get(prefix);
             if (url != null) {
@@ -58,19 +72,8 @@ public class ReverseProxy extends AsyncProxyServlet {
                 log.info("Proxying to " + newTarget);
                 return newTarget;
             }
-        } else if (uri.equals("/api/v1/apps")) {
-            String method = clientRequest.getMethod().toUpperCase();
-            if (method.equals("POST")) {
-                return cluster.getRunners().get(0) + uri;
-            }
-        } else {
-            Matcher appApiMatcher = APP_API.matcher(uri);
-            if (appApiMatcher.matches()) {
-                String prefix = appApiMatcher.group(1);
-                // TODO: proxy to app runner
-                return cluster.getRunners().get(0) + uri;
-            }
         }
+
         log.info("No proxy target configured for " + uri);
         return null;
     }

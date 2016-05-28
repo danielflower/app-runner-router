@@ -91,7 +91,7 @@ public class RoutingTest {
 //        AppRepo app2 = AppRepo.create("maven");
 
         ContentResponse app1Creation = client.createApp(app1.gitUrl(), "app1");
-        Thread.sleep(10000000);
+//        Thread.sleep(10000000);
         assertThat(app1Creation.getStatus(), is(201));
         JSONObject app1Json = new JSONObject(app1Creation.getContentAsString());
         System.out.println("app1Json = " + app1Json.toString(4));
