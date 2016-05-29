@@ -7,7 +7,6 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -73,7 +72,7 @@ public class Cluster {
             .findFirst();
     }
 
-    public Optional<Runner> allocateRunner(ConcurrentHashMap<String, URL> currentMapping) {
+    public Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping) {
         Runner leastContended = null;
         for (Runner runner : runners) {
             if (!runner.hasCapacity()) {

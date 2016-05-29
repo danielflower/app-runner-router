@@ -51,7 +51,7 @@ public class ClusterTest {
 
         cluster.addRunner(instanceOne);
         cluster.addRunner(instanceTwo);
-        proxyMap.add("blah", instanceOne.url.resolve("/blah/").toURL());
+        proxyMap.add("blah", instanceOne.url.resolve("/blah/"));
         assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
     }
 
@@ -62,9 +62,9 @@ public class ClusterTest {
         cluster.addRunner(new Runner("one", URI.create("http://localhost:8081"), 1));
         cluster.addRunner(new Runner("two", URI.create("http://localhost:8082"), 2));
 
-        proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah").toURL());
-        proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah2").toURL());
-        proxyMap.add("blah3", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah3").toURL());
+        proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah"));
+        proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah2"));
+        proxyMap.add("blah3", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah3"));
         assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
     }
 

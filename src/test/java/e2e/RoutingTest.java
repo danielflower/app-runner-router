@@ -65,7 +65,6 @@ public class RoutingTest {
         assertThat(client.registerRunner(appRunner1.id(), appRunner1.url(), 1), equalTo(201, containsString(appRunner1.id())));
         assertThat(client.registerRunner(appRunner2.id(), appRunner2.url(), 2), equalTo(201, containsString(appRunner2.id())));
 
-
         ContentResponse appRunners = client.getAppRunners();
         assertThat(appRunners.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
@@ -125,8 +124,10 @@ public class RoutingTest {
 
         client.createApp(app1.gitUrl(), "app1");
 
-        ContentResponse resp = client.createApp(app2.gitUrl(), "app2");
-        assertThat(resp, equalTo(503, containsString("There are no App Runner instances with free capacity")));
+        assertThat(client.createApp(app2.gitUrl(), "app2"), equalTo(503, containsString("There are no App Runner instances with free capacity")));
+        client.deleteApp("app1");
+
+        assertThat(client.createApp(app2.gitUrl(), "app2"), equalTo(201, containsString("app2")));
     }
 
     @Test

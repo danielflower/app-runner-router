@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.security.Principal;
 import java.util.Collection;
@@ -39,7 +40,7 @@ public class ReverseProxyTest {
 
     @Test
     public void returnsAProxiedAddressIfInMap() throws Exception {
-        proxyMap.add("my-app", new URL("http://localhost:12345/my-app"));
+        proxyMap.add("my-app", URI.create("http://localhost:12345/my-app"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app")), is("http://localhost:12345/my-app"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/")), is("http://localhost:12345/my-app/"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/some/thing")), is("http://localhost:12345/my-app/some/thing"));
@@ -47,7 +48,7 @@ public class ReverseProxyTest {
 
     @Test
     public void queryStringsSurviveProxying() throws Exception {
-        proxyMap.add("my-app", new URL("http://localhost:12345/my-app"));
+        proxyMap.add("my-app", URI.create("http://localhost:12345/my-app"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app?blah=ha")), is("http://localhost:12345/my-app?blah=ha"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/?blah=ha")), is("http://localhost:12345/my-app/?blah=ha"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/some/thing?blah=ha")), is("http://localhost:12345/my-app/some/thing?blah=ha"));
