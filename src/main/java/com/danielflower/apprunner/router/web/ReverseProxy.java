@@ -93,17 +93,19 @@ public class ReverseProxy extends AsyncProxyServlet {
     protected void onServerResponseHeaders(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onServerResponseHeaders(clientRequest, proxyResponse, serverResponse);
         if (isAppCreationPost(clientRequest)) {
-            String appName = proxyResponse.getHeader("Location");
-            appName = appName.substring(appName.lastIndexOf("/") + 1);
+
+            URI runnerURI = serverResponse.getRequest().getURI();
             if (proxyResponse.getStatus() == 201) {
+                String appName = proxyResponse.getHeader("Location");
+                appName = appName.substring(appName.lastIndexOf("/") + 1);
+                URI targetAppRunnerURI = runnerURI.resolve("/" + appName);
                 try {
-                    URI targetAppRunnerURI = serverResponse.getRequest().getURI().resolve("/" + appName);
                     proxyMap.add(appName, targetAppRunnerURI.toURL());
                 } catch (MalformedURLException e) {
                     log.error("Could not write proxy value", e);
                 }
             } else {
-                // decrement instance count for the runner
+                cluster.getRunnerByURL(runnerURI).ifPresent(runner -> runner.numberOfApps.decrementAndGet());
             }
         }
     }

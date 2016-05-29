@@ -6,6 +6,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,5 +91,14 @@ public class Cluster {
             leastContended.numberOfApps.incrementAndGet();
         }
         return Optional.ofNullable(leastContended);
+    }
+
+    public Optional<Runner> getRunnerByURL(URI url) {
+        for (Runner runner : runners) {
+            if (runner.url.getAuthority().equals(url.getAuthority())) {
+                return Optional.of(runner);
+            }
+        }
+        return Optional.empty();
     }
 }

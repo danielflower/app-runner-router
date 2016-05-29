@@ -129,4 +129,14 @@ public class RoutingTest {
         assertThat(resp, equalTo(503, containsString("There are no App Runner instances with free capacity")));
     }
 
+    @Test
+    public void failedCreationDoesNotPermanentlyIncrementUsage() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+
+        client.createApp("", "");
+
+        AppRepo app1 = AppRepo.create("maven");
+        assertThat(client.createApp(app1.gitUrl(), "app1"), equalTo(201, containsString("app1")));
+    }
+
 }

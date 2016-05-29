@@ -37,7 +37,7 @@ public class RouterHandlerList extends HandlerCollection {
             if (target.startsWith("/api/")) {
                 boolean isLocalRestRequest = target.startsWith("/api/v1/runners");
                 Handler h = isLocalRestRequest ? restService : reverseProxy;
-                log.info("Going with " + (isLocalRestRequest ? "REST" : "PROXY") + " for " + target);
+                log.debug("Going with " + (isLocalRestRequest ? "REST" : "PROXY") + " for " + target);
                 h.handle(target, baseRequest, request, response);
                 if (baseRequest.isHandled()) {
                     return;
