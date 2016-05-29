@@ -22,6 +22,7 @@ import java.util.Map;
 import static com.danielflower.apprunner.router.FileSandbox.dirPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static scaffolding.ContentResponseMatcher.equalTo;
 
@@ -47,18 +48,18 @@ public class RoutingTest {
     }
 
     @After
-    public void destroy() {
+    public void destroy() throws Exception {
         try {
             router.shutdown();
         } finally {
             appRunner1.shutDown();
             appRunner2.shutDown();
-            client.stop();
+            client.close();
         }
     }
 
     @Test
-    public void appsAreRoutedToIndividualAppRunners() throws Exception {
+    public void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPI() throws Exception {
         assertThat(client.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
 
         assertThat(client.registerRunner(appRunner1.id(), appRunner1.url(), 1), equalTo(201, containsString(appRunner1.id())));
@@ -88,17 +89,31 @@ public class RoutingTest {
         client.registerRunner(appRunner2.id(), appRunner2.url(), 1);
 
         AppRepo app1 = AppRepo.create("maven");
-//        AppRepo app2 = AppRepo.create("maven");
+        AppRepo app2 = AppRepo.create("maven");
 
         ContentResponse app1Creation = client.createApp(app1.gitUrl(), "app1");
-//        Thread.sleep(10000000);
         assertThat(app1Creation.getStatus(), is(201));
         JSONObject app1Json = new JSONObject(app1Creation.getContentAsString());
-        System.out.println("app1Json = " + app1Json.toString(4));
+        assertThat(app1Json.getString("url"), startsWith(client.routerUrl));
 
         client.deploy("app1");
         Waiter.waitForApp("app1", routerPort);
         assertThat(client.get("/app1/"), equalTo(200, containsString("My Maven App")));
+
+        client.createApp(app2.gitUrl(), "app2");
+
+        // the apps should be evenly distributed
+//        assertThat(numberOfApps(appRunner1), is(1));
+//        assertThat(numberOfApps(appRunner2), is(1));
+    }
+
+    private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {
+        int numberOfApps;
+        try (RestClient c = RestClient.create(appRunner.url().toString())) {
+            JSONObject apps = new JSONObject(c.get("/api/v1/apps").getContentAsString());
+            numberOfApps = apps.getJSONArray("apps").length();
+        }
+        return numberOfApps;
     }
 
 }

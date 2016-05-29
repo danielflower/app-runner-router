@@ -8,28 +8,27 @@ import org.eclipse.jetty.util.Fields;
 import java.net.URI;
 import java.net.URLEncoder;
 
-public class RestClient {
+public class RestClient implements AutoCloseable {
 
     public static RestClient create(String appRunnerUrl) {
         HttpClient c = new HttpClient();
         try {
             c.start();
+            if (appRunnerUrl.endsWith("/")) {
+                appRunnerUrl = appRunnerUrl.substring(0, appRunnerUrl.length() - 1);
+            }
             return new RestClient(c, appRunnerUrl);
-
         } catch (Exception e) {
             throw new RuntimeException("Unable to make client", e);
         }
     }
 
     private final HttpClient client;
-    private final String routerUrl;
+    public final String routerUrl;
 
     private RestClient(HttpClient client, String routerUrl) {
         this.client = client;
         this.routerUrl = routerUrl;
-    }
-    public ContentResponse createApp(String gitUrl) throws Exception {
-        return createApp(gitUrl, null);
     }
 
     public ContentResponse createApp(String gitUrl, String appName) throws Exception {
@@ -73,13 +72,6 @@ public class RestClient {
             .content(new FormContentProvider(fields)).send();
     }
 
-    public void stop() {
-        try {
-            client.stop();
-        } catch (Exception e) {
-            // ignore
-        }
-    }
 
     public ContentResponse getAppRunners() throws Exception {
         return get("/api/v1/runners");
@@ -90,5 +82,10 @@ public class RestClient {
 
     public ContentResponse deleteRunner(String id) throws Exception {
         return client.newRequest(routerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
+    }
+
+    @Override
+    public void close() throws Exception {
+        client.stop();
     }
 }

@@ -7,7 +7,7 @@ import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ProxyMap {
-    public static final Logger log = LoggerFactory.getLogger(ProxyMap.class);
+    private static final Logger log = LoggerFactory.getLogger(ProxyMap.class);
     private final ConcurrentHashMap<String, URL> mapping = new ConcurrentHashMap<>();
 
     public void add(String prefix, URL url) {

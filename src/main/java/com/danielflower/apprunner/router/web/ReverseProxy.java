@@ -82,9 +82,8 @@ public class ReverseProxy extends AsyncProxyServlet {
     }
 
     @Override
-    protected void onProxyResponseSuccess(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
-        super.onProxyResponseSuccess(clientRequest, proxyResponse, serverResponse);
-
+    protected void onServerResponseHeaders(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
+        super.onServerResponseHeaders(clientRequest, proxyResponse, serverResponse);
         if (clientRequest.getMethod().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps")) {
             String appName = proxyResponse.getHeader("Location");
             appName = appName.substring(appName.lastIndexOf("/") + 1);
@@ -95,7 +94,6 @@ public class ReverseProxy extends AsyncProxyServlet {
                 log.error("Could not write proxy value", e);
             }
         }
-
     }
 
     protected void onProxyRewriteFailed(HttpServletRequest clientRequest, HttpServletResponse proxyResponse) {

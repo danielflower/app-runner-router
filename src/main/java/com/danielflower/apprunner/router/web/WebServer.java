@@ -3,7 +3,6 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
-import com.danielflower.apprunner.router.web.v1.AppResource;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.apache.commons.lang3.StringUtils;
@@ -40,17 +39,15 @@ public class WebServer implements AutoCloseable {
     private final String defaultAppName;
     private final SystemResource systemResource;
     private final RunnerResource runnerResource;
-    private final AppResource appResource;
     private final Cluster cluster;
 
-    public WebServer(int port, Cluster cluster, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource, AppResource appResource) {
+    public WebServer(int port, Cluster cluster, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource) {
         this.port = port;
         this.cluster = cluster;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
         this.systemResource = systemResource;
         this.runnerResource = runnerResource;
-        this.appResource = appResource;
         jettyServer = new Server(port);
     }
 

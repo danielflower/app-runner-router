@@ -3,7 +3,6 @@ package com.danielflower.apprunner.router;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
-import com.danielflower.apprunner.router.web.v1.AppResource;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class App {
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"));
         webServer = new WebServer(appRunnerPort, cluster, proxyMap, defaultAppName,
-            new SystemResource(startupComplete), new RunnerResource(cluster), new AppResource(estate));
+            new SystemResource(startupComplete), new RunnerResource(cluster));
         webServer.start();
     }
 
