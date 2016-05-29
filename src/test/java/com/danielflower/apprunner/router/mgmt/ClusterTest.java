@@ -1,13 +1,16 @@
 package com.danielflower.apprunner.router.mgmt;
 
+import com.danielflower.apprunner.router.web.ProxyMap;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.junit.Assert.assertThat;
 
@@ -39,6 +42,17 @@ public class ClusterTest {
         cluster.addRunner(instanceTwo);
         assertThat(cluster.runner("nonexistant").isPresent(), is(false));
         assertThat(cluster.runner(instanceOne.id).orElse(null), is(instanceOne));
+    }
+
+    @Test
+    public void allocatesRunnersBasedOnWhatIsAlreadyLoaded() throws IOException {
+        ProxyMap proxyMap = new ProxyMap();
+        assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
+
+        cluster.addRunner(instanceOne);
+        cluster.addRunner(instanceTwo);
+        proxyMap.add("blah", instanceOne.url.resolve("/blah/").toURL());
+        assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
     }
 
 }

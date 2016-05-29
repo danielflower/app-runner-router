@@ -8,11 +8,20 @@ public class Runner {
     public final String id;
     public final URI url;
     public final int maxApps;
+    private volatile int numberOfApps = 0;
 
     public Runner(String id, URI url, int maxApps) {
         this.id = id;
         this.url = url;
         this.maxApps = maxApps;
+    }
+
+    public int getNumberOfApps() {
+        return numberOfApps;
+    }
+
+    public void setNumberOfApps(int numberOfApps) {
+        this.numberOfApps = numberOfApps;
     }
 
     @Override

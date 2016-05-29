@@ -29,4 +29,8 @@ public class ProxyMap {
     public URL get(String prefix) {
         return mapping.getOrDefault(prefix, null);
     }
+
+    public ConcurrentHashMap<String, URL> getAll() {
+        return mapping;
+    }
 }

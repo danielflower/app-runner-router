@@ -103,8 +103,8 @@ public class RoutingTest {
         client.createApp(app2.gitUrl(), "app2");
 
         // the apps should be evenly distributed
-//        assertThat(numberOfApps(appRunner1), is(1));
-//        assertThat(numberOfApps(appRunner2), is(1));
+        assertThat(numberOfApps(appRunner1), is(1));
+        assertThat(numberOfApps(appRunner2), is(1));
     }
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {

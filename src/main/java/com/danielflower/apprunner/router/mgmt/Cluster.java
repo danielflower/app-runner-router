@@ -6,9 +6,11 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Cluster {
@@ -68,5 +70,19 @@ public class Cluster {
         return runners.stream()
             .filter(runner -> runner.id.equals(id))
             .findFirst();
+    }
+
+    public Optional<Runner> allocateRunner(ConcurrentHashMap<String, URL> currentMapping) {
+        Runner leastContended = null;
+        for (Runner runner : runners) {
+            int num = (int)currentMapping.values().stream()
+                .filter(url ->  url.getAuthority().equals(runner.url.getAuthority()))
+                .count();
+            runner.setNumberOfApps(num);
+            if (leastContended == null || leastContended.getNumberOfApps() > num) {
+                leastContended = runner;
+            }
+        }
+        return Optional.ofNullable(leastContended);
     }
 }

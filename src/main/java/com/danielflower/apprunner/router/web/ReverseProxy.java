@@ -1,6 +1,7 @@
 package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.Runner;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,8 +58,14 @@ public class ReverseProxy extends AsyncProxyServlet {
             if (uri.equals("/api/v1/apps")) {
                 String method = clientRequest.getMethod().toUpperCase();
                 if (method.equals("POST")) {
-                    URI targetAppRunner = cluster.getRunners().get(0).url;
-                    return targetAppRunner.resolve(uri) + query;
+                    Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());
+                    if (targetRunner.isPresent()) {
+                        URI targetAppRunner = targetRunner.get().url;
+                        return targetAppRunner.resolve(uri) + query;
+                    } else {
+                        log.error("There are no app runner instances available! Add another instance or change the maxApps value of an existing one.");
+                        return null;
+                    }
                 }
             } else {
                 Matcher appApiMatcher = APP_API.matcher(uri);
@@ -84,12 +92,12 @@ public class ReverseProxy extends AsyncProxyServlet {
     @Override
     protected void onServerResponseHeaders(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onServerResponseHeaders(clientRequest, proxyResponse, serverResponse);
-        if (clientRequest.getMethod().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps")) {
+        if (clientRequest.getMethod().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps") && proxyResponse.getStatus() == 201) {
             String appName = proxyResponse.getHeader("Location");
             appName = appName.substring(appName.lastIndexOf("/") + 1);
             try {
-                URI targetAppRunner = cluster.getRunners().get(0).url;
-                proxyMap.add(appName, targetAppRunner.resolve("/" + appName).toURL());
+                URI targetAppRunnerURI = serverResponse.getRequest().getURI().resolve("/" + appName);
+                proxyMap.add(appName, targetAppRunnerURI.toURL());
             } catch (MalformedURLException e) {
                 log.error("Could not write proxy value", e);
             }
