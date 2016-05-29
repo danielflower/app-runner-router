@@ -2,7 +2,7 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
-import com.danielflower.apprunner.router.io.Waiter;
+import com.danielflower.apprunner.router.mgmt.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONObject;

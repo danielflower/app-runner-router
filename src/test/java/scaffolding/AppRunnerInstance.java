@@ -1,6 +1,6 @@
 package scaffolding;
 
-import com.danielflower.apprunner.router.io.Waiter;
+import com.danielflower.apprunner.router.mgmt.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FilenameUtils;

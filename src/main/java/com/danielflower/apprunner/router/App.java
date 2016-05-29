@@ -18,7 +18,6 @@ public class App {
 
     private final Config config;
     private WebServer webServer;
-    private AppEstate estate;
     private final AtomicBoolean startupComplete = new AtomicBoolean(false);
 
     public App(Config config) {
@@ -27,12 +26,10 @@ public class App {
 
     public void start() throws Exception {
         File dataDir = config.getOrCreateDir(Config.DATA_DIR);
-        FileSandbox fileSandbox = new FileSandbox(dataDir);
 
         ProxyMap proxyMap = new ProxyMap();
         int appRunnerPort = config.getInt(Config.SERVER_PORT);
 
-        estate = new AppEstate(proxyMap, fileSandbox);
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         MapManager mapManager = ClusterQueryingMapManager.create(proxyMap);
@@ -47,8 +44,6 @@ public class App {
     public void shutdown() {
         log.info("Shutdown invoked");
         if (webServer != null) {
-            log.info("Stopping estate");
-            estate.shutdown();
             log.info("Stopping web server");
             try {
                 webServer.close();

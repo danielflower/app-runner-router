@@ -1,6 +1,6 @@
 package scaffolding;
 
-import com.danielflower.apprunner.router.io.Waiter;
+import com.danielflower.apprunner.router.mgmt.Waiter;
 import org.apache.commons.exec.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
