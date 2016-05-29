@@ -1,4 +1,4 @@
-package com.danielflower.apprunner.router.mgmt;
+package scaffolding;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.slf4j.Logger;

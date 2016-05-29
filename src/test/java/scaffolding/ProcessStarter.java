@@ -1,6 +1,5 @@
 package scaffolding;
 
-import com.danielflower.apprunner.router.mgmt.Waiter;
 import org.apache.commons.exec.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -9,7 +8,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import static com.danielflower.apprunner.router.FileSandbox.dirPath;
+import static com.danielflower.apprunner.router.Config.dirPath;
 
 public class ProcessStarter {
     public final Logger log;

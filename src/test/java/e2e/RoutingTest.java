@@ -2,7 +2,7 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
-import com.danielflower.apprunner.router.mgmt.Waiter;
+import scaffolding.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONObject;
@@ -19,7 +19,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.danielflower.apprunner.router.FileSandbox.dirPath;
+import static com.danielflower.apprunner.router.Config.dirPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;

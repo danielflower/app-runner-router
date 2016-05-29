@@ -1,6 +1,6 @@
 package com.danielflower.apprunner.router.mgmt;
 
-import com.danielflower.apprunner.router.mgmt.Waiter;
+import scaffolding.Waiter;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;

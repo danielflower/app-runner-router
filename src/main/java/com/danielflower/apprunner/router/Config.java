@@ -3,7 +3,6 @@ package com.danielflower.apprunner.router;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
 import com.danielflower.apprunner.router.problems.InvalidConfigException;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.SystemUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,18 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static com.danielflower.apprunner.router.FileSandbox.dirPath;
-
 
 public class Config {
     public static final String SERVER_PORT = "appserver.port";
     public static final String DATA_DIR = "appserver.data.dir";
     public static final String DEFAULT_APP_NAME = "appserver.default.app.name";
-    public static final String INITIAL_APP_URL = "appserver.initial.app.url";
-
-    public static final String JAVA_HOME = "JAVA_HOME";
-    public static final String LEIN_JAR = "LEIN_JAR";
-    public static final String LEIN_JAVA_CMD = "LEIN_JAVA_CMD";
 
     public static Config load(String[] commandLineArgs) throws IOException {
         Map<String, String> env = new HashMap<>(System.getenv());
@@ -52,9 +44,12 @@ public class Config {
         this.raw = raw;
     }
 
-
-    private static String windowsinize(String command) {
-        return SystemUtils.IS_OS_WINDOWS ? command + ".exe" : command;
+    public static String dirPath(File samples) {
+        try {
+            return samples.getCanonicalPath();
+        } catch (IOException e) {
+            return samples.getAbsolutePath();
+        }
     }
 
     public String get(String name, String defaultVal) {
@@ -78,28 +73,12 @@ public class Config {
         }
     }
 
-    public File getDir(String name) {
-        File f = new File(get(name));
-        if (!f.isDirectory()) {
-            throw new AppRunnerException("Could not find " + name + " directory: " + dirPath(f));
-        }
-        return f;
-    }
-
     public File getOrCreateDir(String name) {
         File f = new File(get(name));
         try {
             FileUtils.forceMkdir(f);
         } catch (IOException e) {
             throw new AppRunnerException("Could not create " + dirPath(f));
-        }
-        return f;
-    }
-
-    public File getFile(String name) {
-        File f = new File(get(name));
-        if (!f.isFile()) {
-            throw new AppRunnerException("Could not find " + name + " file: " + dirPath(f));
         }
         return f;
     }

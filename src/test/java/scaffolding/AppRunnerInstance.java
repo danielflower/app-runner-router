@@ -1,6 +1,5 @@
 package scaffolding;
 
-import com.danielflower.apprunner.router.mgmt.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FilenameUtils;
@@ -11,7 +10,7 @@ import java.io.File;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
-import static com.danielflower.apprunner.router.FileSandbox.dirPath;
+import static com.danielflower.apprunner.router.Config.dirPath;
 import static org.junit.Assert.assertTrue;
 
 public class AppRunnerInstance {
