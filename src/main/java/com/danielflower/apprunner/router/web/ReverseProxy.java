@@ -50,7 +50,7 @@ public class ReverseProxy extends AsyncProxyServlet {
         String uri = clientRequest.getRequestURI();
         String query = isEmpty(clientRequest.getQueryString()) ? "" : "?" + clientRequest.getQueryString();
 
-        log.info(clientRequest.getMethod() + " " + uri);
+        log.debug(clientRequest.getMethod() + " " + uri);
         if (uri.startsWith("/api/")) {
             if (isAppCreationPost(clientRequest)) {
                 Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());

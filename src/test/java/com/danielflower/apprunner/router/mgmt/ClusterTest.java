@@ -1,6 +1,10 @@
 package com.danielflower.apprunner.router.mgmt;
 
 import com.danielflower.apprunner.router.web.ProxyMap;
+import org.jmock.Expectations;
+import org.jmock.integration.junit4.JUnitRuleMockery;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.File;
@@ -16,28 +20,38 @@ import static org.junit.Assert.assertThat;
 
 public class ClusterTest {
 
+    @Rule public final JUnitRuleMockery context = new JUnitRuleMockery();
+    private final MapManager mapManager = context.mock(MapManager.class);
     private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
-    private Cluster cluster = Cluster.load(configFile);
+    private Cluster cluster = Cluster.load(configFile, mapManager);
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
 
-    public ClusterTest() throws IOException {
+    public ClusterTest() throws IOException, InterruptedException {
+    }
+
+    @Before
+    public void allowStuff() throws Exception {
+        context.checking(new Expectations() {{
+            allowing(mapManager).loadRunner(with(any(Runner.class)));
+            allowing(mapManager).removeRunner(with(instanceOne));
+        }});
     }
 
     @Test
-    public void appsCanBeSavedAndRetrievedAndDeleted() throws IOException {
+    public void appsCanBeSavedAndRetrievedAndDeleted() throws Exception {
         assertThat(cluster.getRunners(), is(empty()));
         cluster.addRunner(instanceOne);
         cluster.addRunner(instanceTwo);
         assertThat(cluster.getRunners(), contains(instanceOne, instanceTwo));
         cluster.deleteRunner(instanceOne);
 
-        Cluster another = Cluster.load(configFile);
+        Cluster another = Cluster.load(configFile, mapManager);
         assertThat(another.getRunners(), contains(instanceTwo));
     }
 
     @Test
-    public void canLookupRunnersByID() throws IOException {
+    public void canLookupRunnersByID() throws Exception {
         cluster.addRunner(instanceOne);
         cluster.addRunner(instanceTwo);
         assertThat(cluster.runner("nonexistant").isPresent(), is(false));
@@ -45,7 +59,7 @@ public class ClusterTest {
     }
 
     @Test
-    public void allocatesRunnersBasedOnWhatIsAlreadyLoaded() throws IOException {
+    public void allocatesRunnersBasedOnWhatIsAlreadyLoaded() throws Exception {
         ProxyMap proxyMap = new ProxyMap();
         assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
 
@@ -56,7 +70,7 @@ public class ClusterTest {
     }
 
     @Test
-    public void doesNotAllocateToOversubscribedRunners() throws IOException {
+    public void doesNotAllocateToOversubscribedRunners() throws Exception {
         ProxyMap proxyMap = new ProxyMap();
 
         cluster.addRunner(new Runner("one", URI.create("http://localhost:8081"), 1));

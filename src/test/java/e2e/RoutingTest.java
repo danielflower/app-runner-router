@@ -32,6 +32,7 @@ public class RoutingTest {
     private App router;
     private RestClient client;
     private int routerPort;
+    private Map<String, String> env;
 
     @Before
     public void create() throws Exception {
@@ -42,6 +43,7 @@ public class RoutingTest {
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
+        this.env = env;
         router = new App(new Config(env));
         router.start();
         client = RestClient.create("http://localhost:" + routerPort);
@@ -100,6 +102,9 @@ public class RoutingTest {
         assertThat(client.get("/app1/"), equalTo(200, containsString("My Maven App")));
 
         client.createApp(app2.gitUrl(), "app2");
+        client.deploy("app2");
+
+        assertThat(client.get("/app2/"), equalTo(200, containsString("My Maven App")));
 
         // the apps should be evenly distributed
         assertThat(numberOfApps(appRunner1), is(1));
@@ -133,11 +138,39 @@ public class RoutingTest {
     @Test
     public void failedCreationDoesNotPermanentlyIncrementUsage() throws Exception {
         client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
-
         client.createApp("", "");
-
         AppRepo app1 = AppRepo.create("maven");
         assertThat(client.createApp(app1.gitUrl(), "app1"), equalTo(201, containsString("app1")));
+    }
+
+
+    @Test
+    public void appsAddedToAnInstanceBeforeItJoinsTheClusterAreAvailable() throws Exception {
+        AppRepo app1 = AppRepo.create("maven");
+        try (RestClient direct = RestClient.create(appRunner1.url().toString())) {
+            direct.createApp(app1.gitUrl(), "app1");
+            direct.deploy(app1.name);
+        }
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+        ContentResponse contentResponse = client.get("/api/v1/apps/app1");
+        assertThat(contentResponse.getStatus(), is(200));
+        JSONObject json = new JSONObject(contentResponse.getContentAsString());
+        JSONAssert.assertEquals("{ 'name': 'app1', 'url': '" + client.routerUrl + "/app1/' }", json, JSONCompareMode.LENIENT);
+    }
+
+    @Test
+    public void onStartupTheAppsOfRunnersAreRemembered() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+        AppRepo app1 = AppRepo.create("maven");
+        client.createApp(app1.gitUrl(), "my-app");
+        client.deploy("my-app");
+        router.shutdown();
+        router = new App(new Config(env));
+        router.start();
+
+        Waiter waiter = Waiter.waitForApp("my-app", routerPort);
+        waiter.blockUntilReady();
+        assertThat(client.get("/my-app/"), equalTo(200, containsString("My Maven App")));
     }
 
 }

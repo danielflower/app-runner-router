@@ -40,7 +40,7 @@ public class RunnerResource {
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @ApiOperation(value = "Gets a single app")
-    public Response app(@Context UriInfo uriInfo, @ApiParam(required = true, example = "app-runner-instance") @PathParam("id") String id) {
+    public Response getRunner(@Context UriInfo uriInfo, @ApiParam(required = true, example = "app-runner-instance") @PathParam("id") String id) {
         Optional<Runner> app = cluster.runner(id);
         if (app.isPresent()) {
             return Response.ok(app.get().toJSON().toString(4)).build();

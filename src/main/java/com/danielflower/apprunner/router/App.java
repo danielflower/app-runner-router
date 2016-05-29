@@ -1,6 +1,8 @@
 package com.danielflower.apprunner.router;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.ClusterQueryingMapManager;
+import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
@@ -33,7 +35,10 @@ public class App {
         estate = new AppEstate(proxyMap, fileSandbox);
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
-        Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"));
+        MapManager mapManager = ClusterQueryingMapManager.create(proxyMap);
+        Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
+        mapManager.loadAll(cluster.getRunners());
+
         webServer = new WebServer(appRunnerPort, cluster, proxyMap, defaultAppName,
             new SystemResource(startupComplete), new RunnerResource(cluster));
         webServer.start();

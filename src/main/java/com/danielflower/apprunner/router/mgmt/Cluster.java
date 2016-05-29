@@ -1,5 +1,6 @@
 package com.danielflower.apprunner.router.mgmt;
 
+import com.danielflower.apprunner.router.web.ProxyMap;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,13 +18,15 @@ public class Cluster {
 
     private final File config;
     private final List<Runner> runners = new CopyOnWriteArrayList<>();
+    private final MapManager querier;
 
-    private Cluster(File config, List<Runner> runners) {
+    private Cluster(File config, MapManager querier, List<Runner> runners) {
         this.config = config;
+        this.querier = querier;
         this.runners.addAll(runners);
     }
 
-    public static Cluster load(File config) throws IOException {
+    public static Cluster load(File config, MapManager mapManager) throws IOException {
         ArrayList<Runner> runners = new ArrayList<>();
         if (config.exists()) {
             JSONObject json = new JSONObject(FileUtils.readFileToString(config));
@@ -34,22 +37,24 @@ public class Cluster {
             config.getParentFile().mkdirs();
             config.createNewFile();
         }
-        return new Cluster(config, runners);
+        return new Cluster(config, mapManager, runners);
     }
 
     public List<Runner> getRunners() {
         return runners;
     }
 
-    public synchronized void addRunner(Runner runner) throws IOException {
+    public synchronized void addRunner(Runner runner) throws Exception {
         if (!runners.contains(runner)) {
             runners.add(runner);
         }
+        querier.loadRunner(runner);
         save();
     }
 
     public synchronized void deleteRunner(Runner runner) throws IOException {
         runners.remove(runner);
+        querier.removeRunner(runner);
         save();
     }
 
@@ -99,5 +104,9 @@ public class Cluster {
             }
         }
         return Optional.empty();
+    }
+
+    public void updateProxyMap(Runner runner, ProxyMap proxyMap) {
+
     }
 }
