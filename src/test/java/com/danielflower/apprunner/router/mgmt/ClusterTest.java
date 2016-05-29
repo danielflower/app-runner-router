@@ -55,4 +55,17 @@ public class ClusterTest {
         assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
     }
 
+    @Test
+    public void doesNotAllocateToOversubscribedRunners() throws IOException {
+        ProxyMap proxyMap = new ProxyMap();
+
+        cluster.addRunner(new Runner("one", URI.create("http://localhost:8081"), 1));
+        cluster.addRunner(new Runner("two", URI.create("http://localhost:8082"), 2));
+
+        proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah").toURL());
+        proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah2").toURL());
+        proxyMap.add("blah3", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah3").toURL());
+        assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
+    }
+
 }

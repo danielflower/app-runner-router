@@ -92,26 +92,43 @@ public class ReverseProxy extends AsyncProxyServlet {
     @Override
     protected void onServerResponseHeaders(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onServerResponseHeaders(clientRequest, proxyResponse, serverResponse);
-        if (clientRequest.getMethod().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps") && proxyResponse.getStatus() == 201) {
+        if (isAppCreationPost(clientRequest)) {
             String appName = proxyResponse.getHeader("Location");
             appName = appName.substring(appName.lastIndexOf("/") + 1);
-            try {
-                URI targetAppRunnerURI = serverResponse.getRequest().getURI().resolve("/" + appName);
-                proxyMap.add(appName, targetAppRunnerURI.toURL());
-            } catch (MalformedURLException e) {
-                log.error("Could not write proxy value", e);
+            if (proxyResponse.getStatus() == 201) {
+                try {
+                    URI targetAppRunnerURI = serverResponse.getRequest().getURI().resolve("/" + appName);
+                    proxyMap.add(appName, targetAppRunnerURI.toURL());
+                } catch (MalformedURLException e) {
+                    log.error("Could not write proxy value", e);
+                }
+            } else {
+                // decrement instance count for the runner
             }
         }
     }
 
+    private static boolean isAppCreationPost(HttpServletRequest clientRequest) {
+        return clientRequest.getMethod().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps");
+    }
+
     protected void onProxyRewriteFailed(HttpServletRequest clientRequest, HttpServletResponse proxyResponse) {
         // this is called if rewriteTarget returns null
+        int status;
+        String message;
+        if (isAppCreationPost(clientRequest)) {
+            status = 503;
+            message = "There are no App Runner instances with free capacity";
+        } else {
+            status = 404;
+            message = "404 Not Found";
+        }
         try {
-            proxyResponse.getWriter().write("404 Not Found");
+            proxyResponse.getWriter().write(message);
         } catch (IOException e) {
             log.info("Could not write error", e);
         }
-        sendProxyResponseError(clientRequest, proxyResponse, 404);
+        sendProxyResponseError(clientRequest, proxyResponse, status);
     }
 
     protected void addProxyHeaders(HttpServletRequest clientRequest, Request proxyRequest) {

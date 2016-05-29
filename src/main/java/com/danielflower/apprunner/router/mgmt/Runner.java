@@ -3,25 +3,18 @@ package com.danielflower.apprunner.router.mgmt;
 import org.json.JSONObject;
 
 import java.net.URI;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Runner {
     public final String id;
     public final URI url;
     public final int maxApps;
-    private volatile int numberOfApps = 0;
+    public AtomicInteger numberOfApps = new AtomicInteger(0);
 
     public Runner(String id, URI url, int maxApps) {
         this.id = id;
         this.url = url;
         this.maxApps = maxApps;
-    }
-
-    public int getNumberOfApps() {
-        return numberOfApps;
-    }
-
-    public void setNumberOfApps(int numberOfApps) {
-        this.numberOfApps = numberOfApps;
     }
 
     @Override
@@ -60,5 +53,9 @@ public class Runner {
 
     public static Runner fromJSON(JSONObject o) {
         return new Runner((String) o.get("id"), URI.create((String) o.get("url")), (int) o.get("maxApps"));
+    }
+
+    public boolean hasCapacity() {
+        return numberOfApps.get() < maxApps;
     }
 }

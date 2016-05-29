@@ -75,13 +75,19 @@ public class Cluster {
     public Optional<Runner> allocateRunner(ConcurrentHashMap<String, URL> currentMapping) {
         Runner leastContended = null;
         for (Runner runner : runners) {
+            if (!runner.hasCapacity()) {
+                continue;
+            }
             int num = (int)currentMapping.values().stream()
                 .filter(url ->  url.getAuthority().equals(runner.url.getAuthority()))
                 .count();
-            runner.setNumberOfApps(num);
-            if (leastContended == null || leastContended.getNumberOfApps() > num) {
+            runner.numberOfApps.set(num);
+            if (leastContended == null || leastContended.numberOfApps.get() > num) {
                 leastContended = runner;
             }
+        }
+        if (leastContended != null) {
+            leastContended.numberOfApps.incrementAndGet();
         }
         return Optional.ofNullable(leastContended);
     }

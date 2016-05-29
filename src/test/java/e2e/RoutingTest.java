@@ -116,4 +116,17 @@ public class RoutingTest {
         return numberOfApps;
     }
 
+    @Test
+    public void appsAreNotAddedToRunnersThatAreAtMaxCapacity() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+
+        AppRepo app1 = AppRepo.create("maven");
+        AppRepo app2 = AppRepo.create("maven");
+
+        client.createApp(app1.gitUrl(), "app1");
+
+        ContentResponse resp = client.createApp(app2.gitUrl(), "app2");
+        assertThat(resp, equalTo(503, containsString("There are no App Runner instances with free capacity")));
+    }
+
 }
