@@ -5,7 +5,6 @@ import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
-import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
 import org.eclipse.jetty.server.*;
@@ -38,18 +37,16 @@ public class WebServer implements AutoCloseable {
     private final ProxyMap proxyMap;
     private Server jettyServer;
     private final String defaultAppName;
-    private final SystemResource systemResource;
     private final RunnerResource runnerResource;
     private final Cluster cluster;
     private final MapManager mapManager;
 
-    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource) {
+    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource) {
         this.port = port;
         this.cluster = cluster;
         this.mapManager = mapManager;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
-        this.systemResource = systemResource;
         this.runnerResource = runnerResource;
         jettyServer = new Server(port);
     }
@@ -71,9 +68,7 @@ public class WebServer implements AutoCloseable {
         handlers.addRestServiceHandler(createRestService());
         handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap));
         jettyServer.setHandler(handlers);
-
         jettyServer.setRequestLog(new NCSARequestLog("access.log"));
-
         jettyServer.start();
 
         port = ((ServerConnector) jettyServer.getConnectors()[0]).getLocalPort();
@@ -82,11 +77,9 @@ public class WebServer implements AutoCloseable {
 
     private Handler createRestService() {
         ResourceConfig rc = new ResourceConfig();
-        rc.register(systemResource);
         rc.register(runnerResource);
         rc.register(JacksonFeature.class);
         rc.register(CORSFilter.class);
-        SwaggerDocs.registerSwaggerJsonResource(rc);
         rc.addProperties(new HashMap<String,Object>() {{
             // Turn off buffering so results can be streamed
             put(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -144,7 +137,7 @@ public class WebServer implements AutoCloseable {
         jettyServer.destroy();
     }
 
-    public URL baseUrl() {
+    private URL baseUrl() {
         try {
             return new URL("http", "localhost", port, "");
         } catch (MalformedURLException e) {

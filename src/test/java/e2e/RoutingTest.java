@@ -118,6 +118,7 @@ public class RoutingTest {
             "] }", appsResponse.getContentAsString(), JSONCompareMode.STRICT_ORDER);
         assertThat(appsResponse.getStatus(), is(200));
 
+        assertThat(client.get("/api/v1/swagger.json"), equalTo(200, containsString("/apps/{name}")));
     }
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {

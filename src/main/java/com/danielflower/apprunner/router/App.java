@@ -6,19 +6,16 @@ import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
-import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
 
     private final Config config;
     private WebServer webServer;
-    private final AtomicBoolean startupComplete = new AtomicBoolean(false);
 
     public App(Config config) {
         this.config = config;
@@ -34,10 +31,9 @@ public class App {
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         MapManager mapManager = ClusterQueryingMapManager.create(proxyMap);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
-        mapManager.loadAll(cluster.getRunners());
+        mapManager.loadAllApps(cluster.getRunners());
 
-        webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName,
-            new SystemResource(startupComplete), new RunnerResource(cluster));
+        webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName, new RunnerResource(cluster));
         webServer.start();
     }
 

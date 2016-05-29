@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,6 +64,11 @@ public class ReverseProxy extends AsyncProxyServlet {
                 } else {
                     log.error("There are no app runner instances available! Add another instance or change the maxApps value of an existing one.");
                     return null;
+                }
+            } else if (uri.equals("/api/v1/swagger.json") || uri.startsWith("/api/v1/system")) {
+                List<Runner> runners = cluster.getRunners();
+                if (runners.size() > 0) {
+                    return runners.get(0).url.resolve(uri).toString();
                 }
             } else {
                 Matcher appMatcher = APP_API_REQUEST.matcher(uri);

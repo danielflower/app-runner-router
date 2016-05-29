@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public interface MapManager {
-    List<JSONObject> loadAll(List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException;
+    List<JSONObject> loadAllApps(List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException;
 
     JSONObject loadRunner(Runner runner) throws Exception;
 

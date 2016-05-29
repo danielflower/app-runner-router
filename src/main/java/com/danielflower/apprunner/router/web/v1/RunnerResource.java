@@ -2,7 +2,6 @@ package com.danielflower.apprunner.router.web.v1;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
-import io.swagger.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +17,6 @@ import java.util.Optional;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
-@Api(value = "Runner")
 @Path("/runners")
 public class RunnerResource {
     public static final Logger log = LoggerFactory.getLogger(RunnerResource.class);
@@ -31,7 +29,6 @@ public class RunnerResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(value = "Gets all registered runners")
     public String all(@Context UriInfo uriInfo) {
         return cluster.toJSON().toString(4);
     }
@@ -39,8 +36,7 @@ public class RunnerResource {
     @GET
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(value = "Gets a single app")
-    public Response getRunner(@Context UriInfo uriInfo, @ApiParam(required = true, example = "app-runner-instance") @PathParam("id") String id) {
+    public Response getRunner(@Context UriInfo uriInfo, @PathParam("id") String id) {
         Optional<Runner> app = cluster.runner(id);
         if (app.isPresent()) {
             return Response.ok(app.get().toJSON().toString(4)).build();
@@ -51,18 +47,9 @@ public class RunnerResource {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    @ApiOperation(value = "Registers an app or updates an existing app runner instance")
-    @ApiResponses(value = {
-        @ApiResponse(code = 201, message = "The new runner was successfully registered"),
-        @ApiResponse(code = 200, message = "The existing runner was updated"),
-        @ApiResponse(code = 400, message = "ID is missing, or URL is missing, or maxApps is less than 1")
-    })
     public Response create(@Context UriInfo uriInfo,
-                           @ApiParam(required = true, example = "app-runner-instance", value = "The ID of an app runner instance")
                            @FormParam("id") String id,
-                           @ApiParam(required = true, example = "http://machine:1234", value = "The URL of the instance")
-                               @FormParam("url") String url,
-                           @ApiParam(required = true, example = "20", value = "The maximum number of apps to allow on the instance")
+                           @FormParam("url") String url,
                            @FormParam("maxApps") int maxApps) {
 
         if (isBlank(id)) {
@@ -101,8 +88,7 @@ public class RunnerResource {
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    @ApiOperation(value = "De-registers an instance")
-    public Response delete(@Context UriInfo uriInfo, @ApiParam(required=true) @PathParam("id") String id) throws IOException {
+    public Response delete(@Context UriInfo uriInfo, @PathParam("id") String id) throws IOException {
         Optional<Runner> existing = cluster.runner(id);
         if (existing.isPresent()) {
             Runner runner = existing.get();

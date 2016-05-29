@@ -28,6 +28,7 @@ public class Cluster {
 
     public static Cluster load(File config, MapManager mapManager) throws IOException {
         ArrayList<Runner> runners = new ArrayList<>();
+        boolean isNew = !config.exists();
         if (config.exists()) {
             JSONObject json = new JSONObject(FileUtils.readFileToString(config));
             for (Object o : json.getJSONArray("runners")) {
@@ -37,7 +38,11 @@ public class Cluster {
             config.getParentFile().mkdirs();
             config.createNewFile();
         }
-        return new Cluster(config, mapManager, runners);
+        Cluster cluster = new Cluster(config, mapManager, runners);
+        if (isNew) {
+            cluster.save();
+        }
+        return cluster;
     }
 
     public List<Runner> getRunners() {

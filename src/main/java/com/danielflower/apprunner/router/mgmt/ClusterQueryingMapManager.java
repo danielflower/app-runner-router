@@ -37,20 +37,12 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public List<JSONObject> loadAll(List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
+    public List<JSONObject> loadAllApps(List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();
         log.info("Looking up app info from " + runners);
-
         List<Future<JSONObject>> futures = new ArrayList<>();
         for (Runner runner : runners) {
-            Future<JSONObject> result = executorService.submit(() -> {
-                try {
-                    return loadRunner(runner);
-                } catch (Exception e) {
-                    throw new RuntimeException("Error while loading " + runner.url, e);
-                }
-            });
-            futures.add(result);
+            futures.add(executorService.submit(() -> loadRunner(runner)));
         }
         for (Future<JSONObject> future : futures) {
             results.add(future.get(45, TimeUnit.SECONDS));

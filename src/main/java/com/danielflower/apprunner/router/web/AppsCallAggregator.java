@@ -30,7 +30,7 @@ class AppsCallAggregator extends AbstractHandler {
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         if (canHandle(target, request)) {
             try {
-                List<JSONObject> results = mapManager.loadAll(cluster.getRunners());
+                List<JSONObject> results = mapManager.loadAllApps(cluster.getRunners());
                 JSONObject all = new JSONObject();
                 List<JSONObject> unsorted = new ArrayList<>();
 
