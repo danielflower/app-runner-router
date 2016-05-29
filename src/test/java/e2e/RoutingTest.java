@@ -109,6 +109,15 @@ public class RoutingTest {
         // the apps should be evenly distributed
         assertThat(numberOfApps(appRunner1), is(1));
         assertThat(numberOfApps(appRunner2), is(1));
+
+        // querying for all the apps returns a combined list
+        ContentResponse appsResponse = client.get("/api/v1/apps");
+        JSONAssert.assertEquals("{ 'apps': [ " +
+            "{ 'name': 'app1' }," +
+            "{ 'name': 'app2' }" +
+            "] }", appsResponse.getContentAsString(), JSONCompareMode.STRICT_ORDER);
+        assertThat(appsResponse.getStatus(), is(200));
+
     }
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {

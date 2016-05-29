@@ -34,7 +34,8 @@ public class RouterHandlerList extends HandlerCollection {
 
         if (handlers!=null && isStarted())
         {
-            if (target.startsWith("/api/")) {
+
+            if (target.startsWith("/api/") && !AppsCallAggregator.canHandle(target, request)) {
                 boolean isLocalRestRequest = target.startsWith("/api/v1/runners");
                 Handler h = isLocalRestRequest ? restService : reverseProxy;
                 log.debug("Going with " + (isLocalRestRequest ? "REST" : "PROXY") + " for " + target);
@@ -44,13 +45,12 @@ public class RouterHandlerList extends HandlerCollection {
                 }
             }
 
-            for (int i=0;i<handlers.length;i++)
-            {
-                handlers[i].handle(target,baseRequest, request, response);
-                if ( baseRequest.isHandled())
+            for (Handler handler : handlers) {
+                handler.handle(target, baseRequest, request, response);
+                if (baseRequest.isHandled()) {
                     return;
+                }
             }
-
 
         }
     }

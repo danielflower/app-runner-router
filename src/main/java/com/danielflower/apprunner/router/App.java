@@ -36,7 +36,7 @@ public class App {
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAll(cluster.getRunners());
 
-        webServer = new WebServer(appRunnerPort, cluster, proxyMap, defaultAppName,
+        webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName,
             new SystemResource(startupComplete), new RunnerResource(cluster));
         webServer.start();
     }

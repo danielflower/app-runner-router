@@ -34,7 +34,7 @@ public class ReverseProxyTest {
     private ProxyMap proxyMap = new ProxyMap();
     private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
     private Cluster cluster = Cluster.load(configFile, mapManager);
-    private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap);
+    private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap, mapManager);
 
     public ReverseProxyTest() throws IOException, InterruptedException {
     }

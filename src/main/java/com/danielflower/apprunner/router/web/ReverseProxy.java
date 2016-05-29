@@ -1,6 +1,7 @@
 package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
@@ -26,10 +27,12 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     private final ProxyMap proxyMap;
     private final Cluster cluster;
+    private final MapManager mapManager;
 
-    public ReverseProxy(Cluster cluster, ProxyMap proxyMap) {
+    public ReverseProxy(Cluster cluster, ProxyMap proxyMap, MapManager mapManager) {
         this.cluster = cluster;
         this.proxyMap = proxyMap;
+        this.mapManager = mapManager;
     }
 
     protected String filterServerResponseHeader(HttpServletRequest clientRequest, Response serverResponse, String headerName, String headerValue) {

@@ -2,6 +2,7 @@ package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
@@ -32,7 +33,7 @@ import java.net.URL;
 import java.util.HashMap;
 
 public class WebServer implements AutoCloseable {
-    public static final Logger log = LoggerFactory.getLogger(WebServer.class);
+    private static final Logger log = LoggerFactory.getLogger(WebServer.class);
     private int port;
     private final ProxyMap proxyMap;
     private Server jettyServer;
@@ -40,10 +41,12 @@ public class WebServer implements AutoCloseable {
     private final SystemResource systemResource;
     private final RunnerResource runnerResource;
     private final Cluster cluster;
+    private final MapManager mapManager;
 
-    public WebServer(int port, Cluster cluster, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource) {
+    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, SystemResource systemResource, RunnerResource runnerResource) {
         this.port = port;
         this.cluster = cluster;
+        this.mapManager = mapManager;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
         this.systemResource = systemResource;
@@ -64,6 +67,7 @@ public class WebServer implements AutoCloseable {
     public void start() throws Exception {
         RouterHandlerList handlers = new RouterHandlerList();
         handlers.addHandler(createHomeRedirect());
+        handlers.addHandler(new AppsCallAggregator(mapManager, cluster));
         handlers.addRestServiceHandler(createRestService());
         handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap));
         jettyServer.setHandler(handlers);
@@ -79,7 +83,6 @@ public class WebServer implements AutoCloseable {
     private Handler createRestService() {
         ResourceConfig rc = new ResourceConfig();
         rc.register(systemResource);
-//        rc.register(appResource);
         rc.register(runnerResource);
         rc.register(JacksonFeature.class);
         rc.register(CORSFilter.class);
@@ -126,7 +129,7 @@ public class WebServer implements AutoCloseable {
     }
 
     private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap) {
-        AsyncProxyServlet servlet = new ReverseProxy(cluster, proxyMap);
+        AsyncProxyServlet servlet = new ReverseProxy(cluster, proxyMap, mapManager);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
         proxyServletHolder.setInitParameter("maxThreads", "100");
@@ -148,4 +151,5 @@ public class WebServer implements AutoCloseable {
             throw new AppRunnerException(e);
         }
     }
+
 }
