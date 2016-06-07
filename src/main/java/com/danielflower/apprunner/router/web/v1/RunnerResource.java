@@ -74,7 +74,7 @@ public class RunnerResource {
             } else {
                 status = 201;
             }
-            cluster.addRunner(runner);
+            cluster.addRunner(uriInfo.getBaseUri(), runner);
             return Response.status(status)
                 .header("Location", uriInfo.getRequestUri() + "/" + URLEncoder.encode(id, "UTF-8"))
                 .entity(runner.toJSON().toString(4))

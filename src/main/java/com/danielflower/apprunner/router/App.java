@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URI;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
@@ -31,7 +32,7 @@ public class App {
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         MapManager mapManager = ClusterQueryingMapManager.create(proxyMap);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
-        mapManager.loadAllApps(cluster.getRunners());
+        mapManager.loadAllApps(URI.create("/"), cluster.getRunners());
 
         webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName, new RunnerResource(cluster));
         webServer.start();

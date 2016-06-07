@@ -3,6 +3,8 @@ package com.danielflower.apprunner.router.mgmt;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -37,12 +39,12 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public List<JSONObject> loadAllApps(List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
+    public List<JSONObject> loadAllApps(URI forwardedHost, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
         for (Runner runner : runners) {
-            futures.add(executorService.submit(() -> loadRunner(runner)));
+            futures.add(executorService.submit(() -> loadRunner(forwardedHost, runner)));
         }
         for (Future<JSONObject> future : futures) {
             results.add(future.get(45, TimeUnit.SECONDS));
@@ -52,9 +54,12 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public JSONObject loadRunner(Runner runner) throws Exception {
+    public JSONObject loadRunner(URI forwardedHost, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/apps");
-        ContentResponse resp = httpClient.GET(uri);
+        ContentResponse resp = httpClient.newRequest(uri)
+            .method(HttpMethod.GET)
+            .header(HttpHeader.HOST, forwardedHost.getAuthority())
+            .send();
         if (resp.getStatus() != 200) {
             throw new RuntimeException("Unable to load apps from " + uri + " - message was " + resp.getContentAsString());
         }

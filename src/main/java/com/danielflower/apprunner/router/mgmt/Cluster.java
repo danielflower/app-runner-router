@@ -49,11 +49,11 @@ public class Cluster {
         return runners;
     }
 
-    public synchronized void addRunner(Runner runner) throws Exception {
+    public synchronized void addRunner(URI forwardedForHost, Runner runner) throws Exception {
         if (!runners.contains(runner)) {
             runners.add(runner);
         }
-        querier.loadRunner(runner);
+        querier.loadRunner(forwardedForHost, runner);
         save();
     }
 

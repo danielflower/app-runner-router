@@ -13,6 +13,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -30,7 +31,7 @@ class AppsCallAggregator extends AbstractHandler {
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         if (canHandle(target, request)) {
             try {
-                List<JSONObject> results = mapManager.loadAllApps(cluster.getRunners());
+                List<JSONObject> results = mapManager.loadAllApps(URI.create(request.getRequestURL().toString()), cluster.getRunners());
                 JSONObject all = new JSONObject();
                 List<JSONObject> unsorted = new ArrayList<>();
 

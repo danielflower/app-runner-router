@@ -113,9 +113,10 @@ public class RoutingTest {
         // querying for all the apps returns a combined list
         ContentResponse appsResponse = client.get("/api/v1/apps");
         JSONAssert.assertEquals("{ 'apps': [ " +
-            "{ 'name': 'app1' }," +
-            "{ 'name': 'app2' }" +
+            "{ 'name': 'app1', 'url': 'http://localhost:" + routerPort + "/app1/' }," +
+            "{ 'name': 'app2', 'url': 'http://localhost:" + routerPort + "/app2/' }" +
             "] }", appsResponse.getContentAsString(), JSONCompareMode.STRICT_ORDER);
+
         assertThat(appsResponse.getStatus(), is(200));
 
         assertThat(client.get("/api/v1/swagger.json"), equalTo(200, containsString("/apps/{name}")));
