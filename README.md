@@ -1,32 +1,28 @@
-App Runner
-----------
+App Runner Router
+-----------------
 
-The little web app runner that hosts java, clojure and nodejs apps.
+This is an optional extension to [AppRunner](https://github.com/danielflower/app-runner) that
+allows for horizontal scaling of AppRunner instances. The basic idea is that you can start
+multiple, independent AppRunners on different machines, and then have the App Runner Router
+act as a reverse proxy, sending requests to the various instances it knows about.
 
-Running locally
----------------
+### Installation and configuration
 
-Run `com.danielflower.apprunner.RunLocal.main` from your IDE. This will use the settings in
-`sample-config.properties`. Upon startup, it will try to download, build, and deploy the
-application specified in the config. Launch the URL that is logged on startup see the hosted
-sample app.
+Download the jar, create a log config, and start it. There is an example in the `local` directory
+of this repo.
 
-Deploying
----------
+To register App Runner instances with the router, first start them, then POST information to the router.
 
-You need to have a Windows or Linux server available with Java and one or more build tools
-installed:
+For example, if the router is running at `apprunner.example.org` and you have an app runner instance at
+`some-host.example.org:8080`, then make the following request:
 
-* Java 8 or later
-* Maven (if you wish to support Maven builds)
-* Lein (if you wish to support Clojure builds)
-* NodeJS and NPM (if you wish to support Nodejs builds)
+    POST http://apprunner.example.org/api/v1/runners
+    Form parameters:
+        id: a unique identifier for the app runner instance, for example some-host
+        url: the URL of the instance, e.g. http://some-host.example.org:8080
+        maxApps: the maximum number of applications that can be added to an instance
 
-It's easiest if each tool is available to run from the path, but you can point to specific
-paths by setting paths in your config file.
-
-Download the latest version of _App Runner_ from [Maven central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22app-runner%22)
-
-Run with `java -jar app-runner-{version}.jar /path/to/config.properties`
-
-See `sample-config.properties` for sample configuration.
+Aside from the extra operations in `/api/v1/runners`, the router has the same REST API as an
+app-runner instance. In general, it will simply proxy requests to the correct instance, with a couple
+of exemptions: `GET /api/v1/apps` returns an aggregation of all apps across all instances, and
+`POST /api/v1/apps` will first pick an instance to create the app in, and send it there.

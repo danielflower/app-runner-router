@@ -40,14 +40,16 @@ public class WebServer implements AutoCloseable {
     private final RunnerResource runnerResource;
     private final Cluster cluster;
     private final MapManager mapManager;
+    private final String accessLogFilename;
 
-    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource) {
+    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource, String accessLogFilename) {
         this.port = port;
         this.cluster = cluster;
         this.mapManager = mapManager;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
         this.runnerResource = runnerResource;
+        this.accessLogFilename = accessLogFilename;
         jettyServer = new Server(port);
     }
 
@@ -68,11 +70,25 @@ public class WebServer implements AutoCloseable {
         handlers.addRestServiceHandler(createRestService());
         handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap));
         jettyServer.setHandler(handlers);
-        jettyServer.setRequestLog(new NCSARequestLog("access.log"));
+        addAccessLog();
         jettyServer.start();
 
         port = ((ServerConnector) jettyServer.getConnectors()[0]).getLocalPort();
         log.info("Started web server at " + baseUrl());
+    }
+
+    private void addAccessLog() {
+        if (StringUtils.isNotBlank(accessLogFilename)) {
+            NCSARequestLog log = new NCSARequestLog("access.log");
+            log.setAppend(true);
+            log.setFilename(accessLogFilename);
+            log.setFilenameDateFormat("yyyy_MM_dd");
+            log.setRetainDays(30);
+            log.setLogTimeZone("GMT");
+            log.setExtended(false);
+            log.setLogCookies(false);
+            jettyServer.setRequestLog(log);
+        }
     }
 
     private Handler createRestService() {

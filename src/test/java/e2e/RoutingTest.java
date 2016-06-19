@@ -120,6 +120,9 @@ public class RoutingTest {
         assertThat(appsResponse.getStatus(), is(200));
 
         assertThat(client.get("/api/v1/swagger.json"), equalTo(200, containsString("/apps/{name}")));
+
+        client.stop("app1");
+        client.stop("app2");
     }
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {
@@ -167,6 +170,8 @@ public class RoutingTest {
         assertThat(contentResponse.getStatus(), is(200));
         JSONObject json = new JSONObject(contentResponse.getContentAsString());
         JSONAssert.assertEquals("{ 'name': 'app1', 'url': '" + client.routerUrl + "/app1/' }", json, JSONCompareMode.LENIENT);
+
+        client.stop(app1.name);
     }
 
     @Test
@@ -182,6 +187,8 @@ public class RoutingTest {
         Waiter waiter = Waiter.waitForApp("my-app", routerPort);
         waiter.blockUntilReady();
         assertThat(client.get("/my-app/"), equalTo(200, containsString("My Maven App")));
+
+        client.stop("my-app");
     }
 
 }

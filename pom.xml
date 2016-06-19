@@ -6,7 +6,7 @@
 
     <groupId>com.danielflower.apprunner</groupId>
     <artifactId>app-runner-router</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>1.0-SNAPSHOT</version>
 
     <name>App Runner Router</name>
     <description>A reverse proxy for AppRunner that allows you horizontally scale AppRunner</description>

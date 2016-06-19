@@ -34,7 +34,8 @@ public class App {
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAllApps(URI.create("/"), cluster.getRunners());
 
-        webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName, new RunnerResource(cluster));
+        String accessLogFilename = config.get("access.log.path", null);
+        webServer = new WebServer(appRunnerPort, cluster, mapManager, proxyMap, defaultAppName, new RunnerResource(cluster), accessLogFilename);
         webServer.start();
     }
 

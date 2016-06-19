@@ -3,3 +3,6 @@
 target/
 dependency-reduced-pom.xml
 access.log
+*.pid
+local/data
+local/logs

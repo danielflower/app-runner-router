@@ -18,7 +18,11 @@ public class Config {
     public static final String DEFAULT_APP_NAME = "appserver.default.app.name";
 
     public static Config load(String[] commandLineArgs) throws IOException {
-        Map<String, String> env = new HashMap<>(System.getenv());
+        Map<String, String> systemEnv = System.getenv();
+        Map<String, String> env = new HashMap<>(systemEnv);
+        for (Map.Entry<String, String> s : systemEnv.entrySet()) {
+            env.put(s.getKey().toLowerCase().replace('_', '.'), s.getValue());
+        }
         for (String key : System.getProperties().stringPropertyNames()) {
             String value = System.getProperty(key);
             env.put(key, value);
