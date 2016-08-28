@@ -26,3 +26,6 @@ Aside from the extra operations in `/api/v1/runners`, the router has the same RE
 app-runner instance. In general, it will simply proxy requests to the correct instance, with a couple
 of exemptions: `GET /api/v1/apps` returns an aggregation of all apps across all instances, and
 `POST /api/v1/apps` will first pick an instance to create the app in, and send it there.
+
+### Change log
+

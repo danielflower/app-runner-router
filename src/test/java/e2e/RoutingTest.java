@@ -3,7 +3,6 @@ package e2e;
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
 import scaffolding.Waiter;
-import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONObject;
 import org.junit.After;
@@ -39,10 +38,13 @@ public class RoutingTest {
         appRunner1 = new AppRunnerInstance("app-runner-1").start();
         appRunner2 = new AppRunnerInstance("app-runner-2").start();
 
-        routerPort = WebServer.getAFreePort();
+        routerPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
+        env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));
+        env.put("apprunner.keystore.password", "password");
+        env.put("apprunner.keymanager.password", "password");
         this.env = env;
         router = new App(new Config(env));
         router.start();

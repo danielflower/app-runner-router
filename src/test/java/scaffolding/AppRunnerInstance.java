@@ -1,12 +1,14 @@
 package scaffolding;
 
-import com.danielflower.apprunner.router.web.WebServer;
+import com.danielflower.apprunner.router.problems.AppRunnerException;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
@@ -25,10 +27,20 @@ public class AppRunnerInstance {
         this.id = id;
     }
 
+    public static int getAFreePort() {
+        try {
+            try (ServerSocket serverSocket = new ServerSocket(0)) {
+                return serverSocket.getLocalPort();
+            }
+        } catch (IOException e) {
+            throw new AppRunnerException("Unable to get a port", e);
+        }
+    }
+
     public AppRunnerInstance start() {
         File dir = new File("target/e2e/" + id + "/" + System.currentTimeMillis());
         assertTrue(dir.mkdirs());
-        int port = WebServer.getAFreePort();
+        int port = getAFreePort();
         File uberJar = new File(FilenameUtils.separatorsToSystem("target/e2e/app-runner.jar"));
         if (!uberJar.isFile()) {
             throw new RuntimeException("Could not find the app-runner jar. Try running mvn compile first.");

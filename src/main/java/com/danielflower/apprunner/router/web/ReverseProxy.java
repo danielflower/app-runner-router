@@ -1,11 +1,12 @@
 package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
-import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,12 +29,12 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     private final ProxyMap proxyMap;
     private final Cluster cluster;
-    private final MapManager mapManager;
+    private final boolean allowUntrustedInstances;
 
-    public ReverseProxy(Cluster cluster, ProxyMap proxyMap, MapManager mapManager) {
+    public ReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances) {
         this.cluster = cluster;
         this.proxyMap = proxyMap;
-        this.mapManager = mapManager;
+        this.allowUntrustedInstances = allowUntrustedInstances;
     }
 
     protected String filterServerResponseHeader(HttpServletRequest clientRequest, Response serverResponse, String headerName, String headerValue) {
@@ -154,5 +155,10 @@ public class ReverseProxy extends AsyncProxyServlet {
         super.addProxyHeaders(clientRequest, proxyRequest);
         proxyRequest.getHeaders().remove("Host");
         proxyRequest.header("Host", clientRequest.getHeader("Host"));
+    }
+
+    @Override
+    protected HttpClient newHttpClient() {
+        return new HttpClient(new SslContextFactory(allowUntrustedInstances));
     }
 }

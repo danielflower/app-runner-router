@@ -13,12 +13,12 @@ import java.util.Properties;
 
 
 public class Config {
-    public static final String SERVER_PORT = "appserver.port";
+    public static final String SERVER_HTTP_PORT = "appserver.port";
+    public static final String SERVER_HTTPS_PORT = "appserver.https.port";
     public static final String DATA_DIR = "appserver.data.dir";
     public static final String DEFAULT_APP_NAME = "appserver.default.app.name";
 
-    public static Config load(String[] commandLineArgs) throws IOException {
-        Map<String, String> systemEnv = System.getenv();
+    public static Config load(Map<String, String> systemEnv, String[] commandLineArgs) throws IOException {
         Map<String, String> env = new HashMap<>(systemEnv);
         for (Map.Entry<String, String> s : systemEnv.entrySet()) {
             env.put(s.getKey().toLowerCase().replace('_', '.'), s.getValue());
@@ -68,13 +68,21 @@ public class Config {
         return s;
     }
 
-    public int getInt(String name) {
-        String s = get(name);
+    public int getInt(String name, int defaultValue) {
+        String s = get(name, String.valueOf(defaultValue));
         try {
             return Integer.parseInt(s);
         } catch (NumberFormatException e) {
             throw new InvalidConfigException("Could not convert " + name + "=" + s + " to an integer");
         }
+    }
+
+    public File getFile(String name) {
+        File f = new File(get(name));
+        if (!f.isFile()) {
+            throw new InvalidConfigException("Could not find " + name + " file: " + dirPath(f));
+        }
+        return f;
     }
 
     public File getOrCreateDir(String name) {
@@ -85,6 +93,10 @@ public class Config {
             throw new AppRunnerException("Could not create " + dirPath(f));
         }
         return f;
+    }
+
+    public boolean getBoolean(String name, boolean defaultValue) {
+        return Boolean.parseBoolean(get(name, String.valueOf(defaultValue)));
     }
 }
 

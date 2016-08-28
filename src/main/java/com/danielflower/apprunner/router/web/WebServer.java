@@ -3,7 +3,6 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
-import com.danielflower.apprunner.router.problems.AppRunnerException;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
@@ -26,14 +25,10 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.ServerSocket;
-import java.net.URL;
 import java.util.HashMap;
 
 public class WebServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
-    private int port;
     private final ProxyMap proxyMap;
     private Server jettyServer;
     private final String defaultAppName;
@@ -41,26 +36,17 @@ public class WebServer implements AutoCloseable {
     private final Cluster cluster;
     private final MapManager mapManager;
     private final String accessLogFilename;
+    private final boolean allowUntrustedInstances;
 
-    public WebServer(int port, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource, String accessLogFilename) {
-        this.port = port;
+    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource, String accessLogFilename, boolean allowUntrustedInstances) {
+        this.jettyServer = jettyServer;
         this.cluster = cluster;
         this.mapManager = mapManager;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
         this.runnerResource = runnerResource;
         this.accessLogFilename = accessLogFilename;
-        jettyServer = new Server(port);
-    }
-
-    public static int getAFreePort() {
-        try {
-            try (ServerSocket serverSocket = new ServerSocket(0)) {
-                return serverSocket.getLocalPort();
-            }
-        } catch (IOException e) {
-            throw new AppRunnerException("Unable to get a port", e);
-        }
+        this.allowUntrustedInstances = allowUntrustedInstances;
     }
 
     public void start() throws Exception {
@@ -68,18 +54,20 @@ public class WebServer implements AutoCloseable {
         handlers.addHandler(createHomeRedirect());
         handlers.addHandler(new AppsCallAggregator(mapManager, cluster));
         handlers.addRestServiceHandler(createRestService());
-        handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap));
+        handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap, allowUntrustedInstances));
         jettyServer.setHandler(handlers);
         addAccessLog();
         jettyServer.start();
 
-        port = ((ServerConnector) jettyServer.getConnectors()[0]).getLocalPort();
-        log.info("Started web server at " + baseUrl());
+        for (Connector connector : jettyServer.getConnectors()) {
+            log.info("Endpoint: " + StringUtils.join(connector.toString().split("[{}]+"), " ", 1, 3));
+        }
+        log.info("Started web server");
     }
 
     private void addAccessLog() {
         if (StringUtils.isNotBlank(accessLogFilename)) {
-            NCSARequestLog log = new NCSARequestLog("access.log");
+            NCSARequestLog log = new NCSARequestLog();
             log.setAppend(true);
             log.setFilename(accessLogFilename);
             log.setFilenameDateFormat("yyyy_MM_dd");
@@ -137,8 +125,8 @@ public class WebServer implements AutoCloseable {
         };
     }
 
-    private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap) {
-        AsyncProxyServlet servlet = new ReverseProxy(cluster, proxyMap, mapManager);
+    private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances) {
+        AsyncProxyServlet servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
         proxyServletHolder.setInitParameter("maxThreads", "100");
@@ -151,14 +139,6 @@ public class WebServer implements AutoCloseable {
         jettyServer.stop();
         jettyServer.join();
         jettyServer.destroy();
-    }
-
-    private URL baseUrl() {
-        try {
-            return new URL("http", "localhost", port, "");
-        } catch (MalformedURLException e) {
-            throw new AppRunnerException(e);
-        }
     }
 
 }
