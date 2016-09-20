@@ -254,7 +254,7 @@
                                 <artifactItem>
                                     <groupId>com.danielflower.apprunner</groupId>
                                     <artifactId>app-runner</artifactId>
-                                    <version>0.1.30</version>
+                                    <version>1.0.7</version>
                                     <outputDirectory>target/e2e</outputDirectory>
                                     <destFileName>app-runner.jar</destFileName>
                                 </artifactItem>

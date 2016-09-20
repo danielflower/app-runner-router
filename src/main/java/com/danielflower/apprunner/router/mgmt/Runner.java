@@ -22,7 +22,7 @@ public class Runner {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Runner runner = (Runner) o;
-        return maxApps == runner.maxApps && id.equals(runner.id) && url.equals(runner.url);
+        return id.equals(runner.id);
 
     }
 
