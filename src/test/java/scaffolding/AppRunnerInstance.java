@@ -47,6 +47,7 @@ public class AppRunnerInstance {
         }
 
         CommandLine command = new CommandLine("java")
+            .addArgument("-Dlogback.configurationFile=" + dirPath(new File("src/test/resources/logback-test.xml")))
             .addArgument("-Dappserver.port=" + port)
             .addArgument("-Dappserver.data.dir=" + dirPath(new File(dir, "data")))
             .addArgument("-jar")

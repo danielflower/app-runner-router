@@ -2,8 +2,10 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
-import scaffolding.Waiter;
+import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.hamcrest.Matchers;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +15,7 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 import scaffolding.AppRepo;
 import scaffolding.AppRunnerInstance;
 import scaffolding.RestClient;
+import scaffolding.Waiter;
 
 import java.io.File;
 import java.util.HashMap;
@@ -159,6 +162,17 @@ public class RoutingTest {
         assertThat(client.createApp(app1.gitUrl(), "app1"), equalTo(201, containsString("app1")));
     }
 
+    @Test
+    public void runnerDetailsCanBeUpdated() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+        ContentResponse response = client.registerRunner(appRunner1.id(), appRunner2.url(), 100);
+        assertThat(response, equalTo(200, Matchers.containsString("100")));
+
+        JSONArray runners = new JSONObject(client.getAppRunners().getContentAsString()).getJSONArray("runners");
+        assertThat(runners.length(), is(1));
+        JSONAssert.assertEquals("{ 'id': '" + appRunner1.id() + "', 'url': '" + appRunner2.url() + "', maxApps: 100 }", runners.get(0).toString(), JSONCompareMode.LENIENT);
+        System.out.println("runners = " + runners);
+    }
 
     @Test
     public void appsAddedToAnInstanceBeforeItJoinsTheClusterAreAvailable() throws Exception {
