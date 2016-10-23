@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,7 +69,7 @@ public class App {
 
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
-        mapManager.loadAllApps(URI.create("/"), cluster.getRunners());
+        mapManager.loadAllApps(null, cluster.getRunners());
 
         String accessLogFilename = config.get("access.log.path", null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);

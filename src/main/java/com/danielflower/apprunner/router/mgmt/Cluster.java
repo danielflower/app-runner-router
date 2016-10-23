@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -49,11 +50,11 @@ public class Cluster {
         return runners;
     }
 
-    public synchronized void addRunner(URI forwardedForHost, Runner runner) throws Exception {
+    public synchronized void addRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
         if (!runners.contains(runner)) {
             runners.add(runner);
         }
-        querier.loadRunner(forwardedForHost, runner);
+        querier.loadRunner(clientRequest, runner);
         save();
     }
 

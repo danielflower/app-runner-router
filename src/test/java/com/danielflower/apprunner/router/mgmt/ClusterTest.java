@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -26,7 +27,7 @@ public class ClusterTest {
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
-    private URI forwardedForHost = URI.create("http://localhost");
+    private HttpServletRequest clientRequest = context.mock(HttpServletRequest.class);
 
     public ClusterTest() throws IOException, InterruptedException {
     }
@@ -34,7 +35,7 @@ public class ClusterTest {
     @Before
     public void allowStuff() throws Exception {
         context.checking(new Expectations() {{
-            allowing(mapManager).loadRunner(with(any(URI.class)), with(any(Runner.class)));
+            allowing(mapManager).loadRunner(with(any(HttpServletRequest.class)), with(any(Runner.class)));
             allowing(mapManager).removeRunner(with(instanceOne));
         }});
     }
@@ -42,8 +43,8 @@ public class ClusterTest {
     @Test
     public void appsCanBeSavedAndRetrievedAndDeleted() throws Exception {
         assertThat(cluster.getRunners(), is(empty()));
-        cluster.addRunner(forwardedForHost, instanceOne);
-        cluster.addRunner(forwardedForHost, instanceTwo);
+        cluster.addRunner(clientRequest, instanceOne);
+        cluster.addRunner(clientRequest, instanceTwo);
         assertThat(cluster.getRunners(), contains(instanceOne, instanceTwo));
         cluster.deleteRunner(instanceOne);
 
@@ -53,8 +54,8 @@ public class ClusterTest {
 
     @Test
     public void canLookupRunnersByID() throws Exception {
-        cluster.addRunner(forwardedForHost, instanceOne);
-        cluster.addRunner(forwardedForHost, instanceTwo);
+        cluster.addRunner(clientRequest, instanceOne);
+        cluster.addRunner(clientRequest, instanceTwo);
         assertThat(cluster.runner("nonexistant").isPresent(), is(false));
         assertThat(cluster.runner(instanceOne.id).orElse(null), is(instanceOne));
     }
@@ -64,8 +65,8 @@ public class ClusterTest {
         ProxyMap proxyMap = new ProxyMap();
         assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
 
-        cluster.addRunner(forwardedForHost, instanceOne);
-        cluster.addRunner(forwardedForHost, instanceTwo);
+        cluster.addRunner(clientRequest, instanceOne);
+        cluster.addRunner(clientRequest, instanceTwo);
         proxyMap.add("blah", instanceOne.url.resolve("/blah/"));
         assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
     }
@@ -74,8 +75,8 @@ public class ClusterTest {
     public void doesNotAllocateToOversubscribedRunners() throws Exception {
         ProxyMap proxyMap = new ProxyMap();
 
-        cluster.addRunner(forwardedForHost, new Runner("one", URI.create("http://localhost:8081"), 1));
-        cluster.addRunner(forwardedForHost, new Runner("two", URI.create("http://localhost:8082"), 2));
+        cluster.addRunner(clientRequest, new Runner("one", URI.create("http://localhost:8081"), 1));
+        cluster.addRunner(clientRequest, new Runner("two", URI.create("http://localhost:8082"), 2));
 
         proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah"));
         proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah2"));

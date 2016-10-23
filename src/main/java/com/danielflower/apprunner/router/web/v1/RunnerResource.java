@@ -5,6 +5,7 @@ import com.danielflower.apprunner.router.mgmt.Runner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -47,7 +48,8 @@ public class RunnerResource {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context UriInfo uriInfo,
+    public Response create(@Context HttpServletRequest clientRequest,
+                           @Context UriInfo uriInfo,
                            @FormParam("id") String id,
                            @FormParam("url") String url,
                            @FormParam("maxApps") int maxApps) {
@@ -74,7 +76,7 @@ public class RunnerResource {
             } else {
                 status = 201;
             }
-            cluster.addRunner(uriInfo.getBaseUri(), runner);
+            cluster.addRunner(clientRequest, runner);
             return Response.status(status)
                 .header("Location", uriInfo.getRequestUri() + "/" + URLEncoder.encode(id, "UTF-8"))
                 .entity(runner.toJSON().toString(4))

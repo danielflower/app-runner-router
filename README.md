@@ -22,6 +22,8 @@ For example, if the router is running at `apprunner.example.org` and you have an
         url: the URL of the instance, e.g. http://some-host.example.org:8080
         maxApps: the maximum number of applications that can be added to an instance
 
+Example curl command: `curl --data 'id=some-name&maxApps=20&url=https://some-host.exaple.org' -X POST https://app-runner-router.example.org/api/v1/runners`
+
 Aside from the extra operations in `/api/v1/runners`, the router has the same REST API as an
 app-runner instance. In general, it will simply proxy requests to the correct instance, with a couple
 of exemptions: `GET /api/v1/apps` returns an aggregation of all apps across all instances, and
