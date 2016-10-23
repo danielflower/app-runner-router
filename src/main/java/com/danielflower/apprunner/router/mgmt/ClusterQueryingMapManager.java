@@ -28,16 +28,6 @@ public class ClusterQueryingMapManager implements MapManager {
         this.httpClient = httpClient;
     }
 
-    public static MapManager create(ProxyMap proxyMap) {
-        HttpClient httpClient = new HttpClient(new SslContextFactory(true));
-        try {
-            httpClient.start();
-        } catch (Exception e) {
-            throw new RuntimeException("Could not start http client", e);
-        }
-        return new ClusterQueryingMapManager(proxyMap, httpClient);
-    }
-
     @Override
     public List<JSONObject> loadAllApps(URI forwardedHost, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();

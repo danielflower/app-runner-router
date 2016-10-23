@@ -2,6 +2,10 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
+import org.json.JSONArray;
+import scaffolding.Waiter;
 import com.danielflower.apprunner.router.web.WebServer;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.Matchers;
@@ -19,10 +23,14 @@ import scaffolding.Waiter;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
@@ -38,7 +46,9 @@ public class RoutingTest {
 
     @Before
     public void create() throws Exception {
-        appRunner1 = new AppRunnerInstance("app-runner-1").start();
+        AppRunnerInstance instanceWithoutNode = new AppRunnerInstance("app-runner-1");
+        instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
+        appRunner1 = instanceWithoutNode.start();
         appRunner2 = new AppRunnerInstance("app-runner-2").start();
 
         routerPort = AppRunnerInstance.getAFreePort();
@@ -205,6 +215,30 @@ public class RoutingTest {
         assertThat(client.get("/my-app/"), equalTo(200, containsString("My Maven App")));
 
         client.stop("my-app");
+    }
+
+    @Test
+    public void theSystemApiReturnsTheSetOfAllSampleAppsAcrossAllTheInstances() throws Exception {
+        client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
+        client.registerRunner(appRunner2.id(), appRunner2.url(), 1);
+
+        JSONObject system = new JSONObject(client.getSystem().getContentAsString());
+        System.out.println("system = " + system.toString(4));
+        JSONArray samples = system.getJSONArray("samples");
+        Set<String> ids = new HashSet<>(); // a set to remove any duplicates
+        for (Object sampleObj : samples) {
+            JSONObject sample = (JSONObject) sampleObj;
+            ids.add(sample.getString("id"));
+            String zipUrl = sample.getString("url");
+            assertThat(zipUrl, containsString(":" + routerPort + "/"));
+            ContentResponse zip = client.getAbsolute(zipUrl);
+            MatcherAssert.assertThat(zipUrl, zip.getStatus(), CoreMatchers.is(200));
+            MatcherAssert.assertThat(zipUrl, zip.getHeaders().get("Content-Type"), CoreMatchers.is("application/zip"));
+        }
+
+        assertThat(ids, hasItem(CoreMatchers.equalTo("maven")));
+        assertThat(ids, hasItem(CoreMatchers.equalTo("nodejs")));
+        assertThat("Number of sample apps", samples.length(), CoreMatchers.equalTo(ids.size()));
     }
 
 }
