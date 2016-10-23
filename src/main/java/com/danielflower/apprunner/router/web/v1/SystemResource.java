@@ -2,9 +2,10 @@ package com.danielflower.apprunner.router.web.v1;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
-import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.json.JSONArray;
@@ -20,14 +21,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Path("/system")
 public class SystemResource {
@@ -44,7 +43,7 @@ public class SystemResource {
         this.httpClient = httpClient;
     }
 
-    public List<JSONObject> loadAllSystems(URI forwardedHost, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
+    private List<JSONObject> loadAllSystems(URI forwardedHost, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
@@ -60,10 +59,14 @@ public class SystemResource {
 
     private JSONObject loadSystemInfoForRunner(URI forwardedHost, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/system");
-        ContentResponse resp = httpClient.newRequest(uri)
-            .method(HttpMethod.GET)
-            .header(HttpHeader.HOST, forwardedHost.getAuthority())
-            .send();
+        Request req = httpClient.newRequest(uri)
+            .method(HttpMethod.GET);
+        if (forwardedHost != null) {
+            // If null, then URLs returned in the JSON will be the app-runner instance's URL.
+            // If not null, it should be the router URL, in which case URLs will be based on the router.
+            req = req.header(HttpHeader.HOST, forwardedHost.getAuthority());
+        }
+        ContentResponse resp = req.send();
         if (resp.getStatus() != 200) {
             throw new RuntimeException("Unable to load system from " + uri + " - message was " + resp.getContentAsString());
         }
@@ -79,7 +82,7 @@ public class SystemResource {
 
         List<JSONObject> systems;
         try {
-            systems = loadAllSystems(uri.getRequestUri(), cluster.getRunners());
+            systems = loadAllSystems(uri.getRequestUri() /* Make URLs be router URLs */, cluster.getRunners());
         } catch (TimeoutException e) {
             return Response.serverError().status(Response.Status.GATEWAY_TIMEOUT).build();
         }
@@ -100,24 +103,53 @@ public class SystemResource {
             }
         }
         result.put("appRunnerStarted", allStarted);
-
         return Response.ok(result.toString(4)).build();
     }
 
     @GET
     @Path("/samples/{name}")
     @Produces("application/zip")
-    public Response samples(@PathParam("name") String name) throws IOException {
-        List<String> names = new ArrayList<>();
-        if (!names.contains(name)) {
-            return Response.status(404).entity("Invalid sample app name. Valid names: " + names).build();
+    public Response samples(@Context UriInfo uri, @PathParam("name") String name) throws IOException, ExecutionException, InterruptedException {
+        Set<String> names = new HashSet<>();
+
+        List<JSONObject> systems;
+        try {
+            systems = loadAllSystems(null /* Keep URLs as instance URLs so they can be called directly by the code below */, cluster.getRunners());
+        } catch (TimeoutException e) {
+            return Response.serverError().status(Response.Status.GATEWAY_TIMEOUT).build();
         }
 
-        try (InputStream zipStream = getClass().getResourceAsStream("/sample-apps/" + name)) {
-            return Response.ok(IOUtils.toByteArray(zipStream))
-                .header("Content-Disposition", "attachment; filename=\"" + name + "\"")
-                .build();
+        for (JSONObject system : systems) {
+            JSONArray samples = system.getJSONArray("samples");
+            for (Object sampleObj : samples) {
+                JSONObject sample = (JSONObject)sampleObj;
+                String id = sample.getString("id");
+                names.add(id);
+                if ((id + ".zip").equalsIgnoreCase(name)) {
+                    URI zipUri = URI.create(sample.getString("url"));
+                    try {
+                        Request targetRequest = httpClient.newRequest(zipUri)
+                            .method(HttpMethod.GET)
+                            .header(HttpHeader.HOST, uri.getRequestUri().getAuthority())
+                            .timeout(30, TimeUnit.SECONDS);
+                        ContentResponse targetResponse = targetRequest.send();
+                        if (targetResponse.getStatus() == 200) {
+                            Response.ResponseBuilder clientResponse = Response.ok(targetResponse.getContent());
+                            for (HttpField httpField : targetResponse.getHeaders()) {
+                                clientResponse.header(httpField.getName(), httpField.getValue());
+                            }
+                            log.info("Return sample for " + name + " from " + zipUri);
+                            return clientResponse.build();
+                        }
+                    } catch (Exception e) {
+                        log.warn("Error while trying to download " + zipUri, e);
+                    }
+                }
+
+            }
         }
+
+        return Response.status(404).entity("Invalid sample app name. Valid names: " + names).build();
     }
 
 }
