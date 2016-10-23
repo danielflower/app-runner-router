@@ -6,6 +6,8 @@ import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
+import com.danielflower.apprunner.router.web.v1.SystemResource;
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -21,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
+import static java.util.Arrays.asList;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
@@ -61,13 +64,18 @@ public class App {
 
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
-        MapManager mapManager = ClusterQueryingMapManager.create(proxyMap);
+
+        HttpClient httpClient = new HttpClient(new SslContextFactory(true));
+        httpClient.start();
+
+        MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAllApps(URI.create("/"), cluster.getRunners());
 
         String accessLogFilename = config.get("access.log.path", null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
-        webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, new RunnerResource(cluster), accessLogFilename, allowUntrustedInstances);
+        List<Object> localRestResources = asList(new RunnerResource(cluster), new SystemResource(cluster, httpClient));
+        webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances);
         webServer.start();
 
         if (sslContextFactory != null) {

@@ -61,7 +61,11 @@ public class RestClient implements AutoCloseable {
     }
 
     public ContentResponse get(String url) throws Exception {
-        return client.GET(routerUrl + url);
+        return getAbsolute(routerUrl + url);
+    }
+
+    public ContentResponse getAbsolute(String absoluteUrl) throws Exception {
+        return client.GET(absoluteUrl);
     }
 
     public ContentResponse registerRunner(String id, URI url, int maxInstances) throws Exception {
@@ -76,6 +80,9 @@ public class RestClient implements AutoCloseable {
 
     public ContentResponse getAppRunners() throws Exception {
         return get("/api/v1/runners");
+    }
+    public ContentResponse getSystem() throws Exception {
+        return get("/api/v1/system");
     }
     public ContentResponse getRunner(String id) throws Exception {
         return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));

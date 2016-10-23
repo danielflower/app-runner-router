@@ -36,7 +36,7 @@ public class RouterHandlerList extends HandlerCollection {
         {
 
             if (target.startsWith("/api/") && !AppsCallAggregator.canHandle(target, request)) {
-                boolean isLocalRestRequest = target.startsWith("/api/v1/runners");
+                boolean isLocalRestRequest = target.startsWith("/api/v1/runners") || target.startsWith("/api/v1/system");
                 Handler h = isLocalRestRequest ? restService : reverseProxy;
                 log.debug("Going with " + (isLocalRestRequest ? "REST" : "PROXY") + " for " + target);
                 h.handle(target, baseRequest, request, response);

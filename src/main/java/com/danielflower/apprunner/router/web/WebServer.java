@@ -26,25 +26,26 @@ import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 
 public class WebServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
     private final ProxyMap proxyMap;
     private Server jettyServer;
     private final String defaultAppName;
-    private final RunnerResource runnerResource;
+    private final List<Object> localRestResources;
     private final Cluster cluster;
     private final MapManager mapManager;
     private final String accessLogFilename;
     private final boolean allowUntrustedInstances;
 
-    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, RunnerResource runnerResource, String accessLogFilename, boolean allowUntrustedInstances) {
+    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances) {
         this.jettyServer = jettyServer;
         this.cluster = cluster;
         this.mapManager = mapManager;
         this.proxyMap = proxyMap;
         this.defaultAppName = defaultAppName;
-        this.runnerResource = runnerResource;
+        this.localRestResources = localRestResources;
         this.accessLogFilename = accessLogFilename;
         this.allowUntrustedInstances = allowUntrustedInstances;
     }
@@ -81,7 +82,7 @@ public class WebServer implements AutoCloseable {
 
     private Handler createRestService() {
         ResourceConfig rc = new ResourceConfig();
-        rc.register(runnerResource);
+        localRestResources.forEach(rc::register);
         rc.register(JacksonFeature.class);
         rc.register(CORSFilter.class);
         rc.addProperties(new HashMap<String,Object>() {{
