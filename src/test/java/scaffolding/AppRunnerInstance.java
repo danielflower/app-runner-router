@@ -20,14 +20,24 @@ import static org.junit.Assert.assertTrue;
 public class AppRunnerInstance {
 
     public final Map<String, String> env = new HashMap<>(System.getenv());
+    private final String jarName;
     private final Logger log;
     private final String id;
     private Killer killer;
     private URI url;
 
-    public AppRunnerInstance(String id) {
+    private AppRunnerInstance(String jarName, String id) {
+        this.jarName = jarName;
         this.log = LoggerFactory.getLogger(id);
         this.id = id;
+    }
+
+    public static AppRunnerInstance versionOne(String id) {
+        return new AppRunnerInstance("app-runner-1.0.jar", id);
+    }
+
+    public static AppRunnerInstance latest(String id) {
+        return new AppRunnerInstance("app-runner-latest.jar", id);
     }
 
     public static int getAFreePort() {
@@ -44,7 +54,7 @@ public class AppRunnerInstance {
         File dir = new File("target/e2e/" + id + "/" + System.currentTimeMillis());
         assertTrue(dir.mkdirs());
         int port = getAFreePort();
-        File uberJar = new File(FilenameUtils.separatorsToSystem("target/e2e/app-runner.jar"));
+        File uberJar = new File(FilenameUtils.separatorsToSystem("target/e2e/" + jarName));
         if (!uberJar.isFile()) {
             throw new RuntimeException("Could not find the app-runner jar. Try running mvn compile first.");
         }

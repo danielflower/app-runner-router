@@ -95,7 +95,7 @@ public class SystemResource {
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
                 JSONObject sample = (JSONObject)sampleObj;
-                String id = sample.getString("id");
+                String id = getSampleID(sample);
                 if (!addedSamples.contains(id)) {
                     apps.put(sample);
                     addedSamples.add(id);
@@ -104,6 +104,10 @@ public class SystemResource {
         }
         result.put("appRunnerStarted", allStarted);
         return Response.ok(result.toString(4)).build();
+    }
+
+    public static String getSampleID(JSONObject sample) {
+        return sample.has("id") ? sample.getString("id") : sample.getString("name");
     }
 
     @GET
@@ -123,7 +127,7 @@ public class SystemResource {
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
                 JSONObject sample = (JSONObject)sampleObj;
-                String id = sample.getString("id");
+                String id = getSampleID(sample);
                 names.add(id);
                 if ((id + ".zip").equalsIgnoreCase(name)) {
                     URI zipUri = URI.create(sample.getString("url"));

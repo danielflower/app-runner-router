@@ -2,12 +2,10 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
+import com.danielflower.apprunner.router.web.v1.SystemResource;
+import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
-import org.json.JSONArray;
-import scaffolding.Waiter;
-import com.danielflower.apprunner.router.web.WebServer;
-import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.Matchers;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -28,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -46,10 +43,10 @@ public class RoutingTest {
 
     @Before
     public void create() throws Exception {
-        AppRunnerInstance instanceWithoutNode = new AppRunnerInstance("app-runner-1");
+        AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
         instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
         appRunner1 = instanceWithoutNode.start();
-        appRunner2 = new AppRunnerInstance("app-runner-2").start();
+        appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
 
         routerPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
@@ -228,7 +225,7 @@ public class RoutingTest {
         Set<String> ids = new HashSet<>(); // a set to remove any duplicates
         for (Object sampleObj : samples) {
             JSONObject sample = (JSONObject) sampleObj;
-            ids.add(sample.getString("id"));
+            ids.add(SystemResource.getSampleID(sample));
             String zipUrl = sample.getString("url");
             assertThat(zipUrl, containsString(":" + routerPort + "/"));
             ContentResponse zip = client.getAbsolute(zipUrl);

@@ -254,9 +254,16 @@
                                 <artifactItem>
                                     <groupId>com.danielflower.apprunner</groupId>
                                     <artifactId>app-runner</artifactId>
-                                    <version>1.2.0</version>
+                                    <version>RELEASE</version>
                                     <outputDirectory>target/e2e</outputDirectory>
-                                    <destFileName>app-runner.jar</destFileName>
+                                    <destFileName>app-runner-latest.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.danielflower.apprunner</groupId>
+                                    <artifactId>app-runner</artifactId>
+                                    <version>1.0.1</version>
+                                    <outputDirectory>target/e2e</outputDirectory>
+                                    <destFileName>app-runner-1.0.jar</destFileName>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
