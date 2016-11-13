@@ -3,6 +3,7 @@ package com.danielflower.apprunner.router;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.ClusterQueryingMapManager;
 import com.danielflower.apprunner.router.mgmt.MapManager;
+import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
@@ -33,6 +34,9 @@ public class App {
     }
 
     public void start() throws Exception {
+        SystemInfo systemInfo = SystemInfo.create();
+        log.info(systemInfo.toString());
+
         File dataDir = config.getOrCreateDir(Config.DATA_DIR);
 
         ProxyMap proxyMap = new ProxyMap();
@@ -74,7 +78,8 @@ public class App {
 
         String accessLogFilename = config.get("access.log.path", null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
-        List<Object> localRestResources = asList(new RunnerResource(cluster), new SystemResource(cluster, httpClient));
+
+        List<Object> localRestResources = asList(new RunnerResource(cluster), new SystemResource(systemInfo, cluster, httpClient));
         webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances);
         webServer.start();
 

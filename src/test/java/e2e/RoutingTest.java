@@ -178,7 +178,6 @@ public class RoutingTest {
         JSONArray runners = new JSONObject(client.getAppRunners().getContentAsString()).getJSONArray("runners");
         assertThat(runners.length(), is(1));
         JSONAssert.assertEquals("{ 'id': '" + appRunner1.id() + "', 'url': '" + appRunner2.url() + "', maxApps: 100 }", runners.get(0).toString(), JSONCompareMode.LENIENT);
-        System.out.println("runners = " + runners);
     }
 
     @Test
@@ -215,11 +214,20 @@ public class RoutingTest {
     }
 
     @Test
-    public void theSystemApiReturnsTheSetOfAllSampleAppsAcrossAllTheInstances() throws Exception {
+    public void theSystemApiReturnsTheSetOfAllSampleAppsAndRunnerInfoAcrossAllTheInstances() throws Exception {
         client.registerRunner(appRunner1.id(), appRunner1.url(), 1);
-        client.registerRunner(appRunner2.id(), appRunner2.url(), 1);
+        client.registerRunner(appRunner2.id(), appRunner2.url(), 2);
 
         JSONObject system = new JSONObject(client.getSystem().getContentAsString());
+//        System.out.println(system.toString(4));
+
+        JSONArray runners = system.getJSONArray("runners");
+        assertThat(runners.length(), is(2));
+        JSONAssert.assertEquals("{ id: '" + appRunner1.id() + "', url: '" + appRunner1.url() + "', maxApps: 1, system: { appRunnerStarted: true } }", runners.getJSONObject(0), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals("{ id: '" + appRunner2.id() + "', url: '" + appRunner2.url() + "', maxApps: 2, system: { appRunnerStarted: true } }", runners.getJSONObject(1), JSONCompareMode.LENIENT);
+
+        assertThat(system.has("publicKeys"), is(true));
+
         JSONArray samples = system.getJSONArray("samples");
         Set<String> ids = new HashSet<>(); // a set to remove any duplicates
         for (Object sampleObj : samples) {

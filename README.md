@@ -40,5 +40,5 @@ locally against your local router.
 
 ### Change log
 
-* **1.2.0** Fixed streaming, missing CORS headers, and increased response timeouts. 
+* **1.2.0** Fixed streaming, missing CORS headers, added full runner info the systems API, and increased response timeouts. 
 * **1.1.4** Fixed bugs where the router is HTTPS and an instance is HTTP.

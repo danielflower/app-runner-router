@@ -3,6 +3,8 @@ package com.danielflower.apprunner.router.web.v1;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.ForwardedHeadersAdder;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import com.danielflower.apprunner.router.mgmt.SystemInfo;
+import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
@@ -23,48 +25,32 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
-import java.util.regex.Pattern;
 
 @Path("/system")
 public class SystemResource {
     public static final Logger log = LoggerFactory.getLogger(SystemResource.class);
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final ForwardedHeadersAdder forwardedHeadersAdder = new ForwardedHeadersAdder();
-    public static final String HOST_NAME;
-    private static final Long pid;
+    private final SystemInfo systemInfo;
+    private final String routerVersion = ObjectUtils.firstNonNull(SystemResource.class.getPackage().getImplementationVersion(), "master");
 
     private final Cluster cluster;
 
     private org.eclipse.jetty.client.HttpClient httpClient;
 
-    static {
-        String name = ManagementFactory.getRuntimeMXBean().getName();
-        pid = Pattern.matches("[0-9]+@.*", name) ? Long.parseLong(name.substring(0, name.indexOf('@'))) : null;
-        String host;
-        try {
-            host = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            log.warn("Could not find host name", e);
-            host = "unknown";
-        }
-        HOST_NAME = host;
-    }
-
-    public SystemResource(Cluster cluster, HttpClient httpClient) {
+    public SystemResource(SystemInfo systemInfo, Cluster cluster, HttpClient httpClient) {
+        this.systemInfo = systemInfo;
         this.cluster = cluster;
         this.httpClient = httpClient;
     }
 
-    private List<JSONObject> loadAllSystems(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
+    private List<JSONObject> loadAllRunnersWithSystems(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
@@ -87,37 +73,66 @@ public class SystemResource {
         if (resp.getStatus() != 200) {
             throw new RuntimeException("Unable to load system from " + uri + " - message was " + resp.getContentAsString());
         }
-        return new JSONObject(resp.getContentAsString());
+        JSONObject runnerJson = runner.toJSON();
+        runnerJson.put("system", new JSONObject(resp.getContentAsString()));
+        return runnerJson;
     }
 
     @GET
     @Produces("application/json")
     public Response systemInfo(@Context HttpServletRequest clientRequest) throws IOException, ExecutionException, InterruptedException {
         JSONObject result = new JSONObject();
-        boolean allStarted = true;
-        result.put("host", HOST_NAME);
-        Runtime runtime = Runtime.getRuntime();
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        result.put("host", systemInfo.hostName);
+        result.put("user", systemInfo.user);
+        result.put("appRunnerVersion", routerVersion);
+
         JSONObject os = new JSONObject();
         result.put("os", os);
-        os.put("osName", System.getProperty("os.name"));
-        os.put("numCpus", runtime.availableProcessors());
-        os.put("uptimeInSeconds", runtimeMXBean.getUptime() / 1000);
-        if (pid != null) {
-            os.put("appRunnerPid", pid.longValue());
-        }
+        os.put("osName", systemInfo.osName);
+        os.put("numCpus", systemInfo.numCpus);
+        os.put("uptimeInSeconds", systemInfo.uptimeInMillis()  / 1000L);
+        os.put("appRunnerPid", systemInfo.pid);
 
-        List<JSONObject> systems;
+        List<JSONObject> runners;
         try {
-            systems = loadAllSystems(clientRequest, cluster.getRunners());
+            runners = loadAllRunnersWithSystems(clientRequest, cluster.getRunners());
         } catch (TimeoutException e) {
             return Response.serverError().status(Response.Status.GATEWAY_TIMEOUT).build();
         }
 
+        result.put("runners", runners);
+        result.put("publicKeys", getAggregatedPublicKeys(runners));
+
+        boolean allStarted = addSamples(result, runners);
+        result.put("appRunnerStarted", allStarted);
+        return Response.ok(result.toString(4)).build();
+    }
+
+    private static JSONArray getAggregatedPublicKeys(List<JSONObject> runners) {
+        JSONArray aggregatedKeys = new JSONArray();
+        Set<String> added = new HashSet<>();
+        for (JSONObject runner : runners) {
+            JSONObject system = runner.getJSONObject("system");
+            if (system.has("publicKeys")) {
+                JSONArray keys = system.getJSONArray("publicKeys");
+                for (Object keyObj : keys) {
+                    String key = (String)keyObj;
+                    if (added.add(key)) {
+                        aggregatedKeys.put(key);
+                    }
+                }
+            }
+        }
+        return aggregatedKeys;
+    }
+
+    private static boolean addSamples(JSONObject result, List<JSONObject> runners) {
+        boolean allStarted = true;
         JSONArray apps = new JSONArray();
         result.put("samples", apps);
         Set<String> addedSamples = new HashSet<>();
-        for (JSONObject system : systems) {
+        for (JSONObject runner : runners) {
+            JSONObject system = runner.getJSONObject("system");
             allStarted = allStarted && system.getBoolean("appRunnerStarted");
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
@@ -129,8 +144,7 @@ public class SystemResource {
                 }
             }
         }
-        result.put("appRunnerStarted", allStarted);
-        return Response.ok(result.toString(4)).build();
+        return allStarted;
     }
 
     public static String getSampleID(JSONObject sample) {
@@ -143,14 +157,15 @@ public class SystemResource {
     public Response samples(@Context UriInfo uri, @PathParam("name") String name) throws IOException, ExecutionException, InterruptedException {
         Set<String> names = new HashSet<>();
 
-        List<JSONObject> systems;
+        List<JSONObject> runners;
         try {
-            systems = loadAllSystems(null /* Keep URLs as instance URLs so they can be called directly by the code below */, cluster.getRunners());
+            runners = loadAllRunnersWithSystems(null /* Keep URLs as instance URLs so they can be called directly by the code below */, cluster.getRunners());
         } catch (TimeoutException e) {
             return Response.serverError().status(Response.Status.GATEWAY_TIMEOUT).build();
         }
 
-        for (JSONObject system : systems) {
+        for (JSONObject runner : runners) {
+            JSONObject system = runner.getJSONObject("system");
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
                 JSONObject sample = (JSONObject)sampleObj;
