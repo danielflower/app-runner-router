@@ -37,8 +37,6 @@ public class RunLocal {
     private AppRunnerInstance appRunner2;
     private App router;
     private RestClientThatThrows client;
-    private int routerPort;
-
 
     public static void main(String[] args) throws Exception {
         RunLocal runLocal = new RunLocal();
@@ -56,9 +54,9 @@ public class RunLocal {
         AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
         instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
         appRunner1 = instanceWithoutNode.start();
-        appRunner2 = AppRunnerInstance.latest("app-runner-2").start();
+        appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
 
-        routerPort = 8443;
+        int routerPort = 8443;
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.https.port", String.valueOf(routerPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
@@ -106,7 +104,6 @@ public class RunLocal {
             unzip(zip, target);
             AppRepo app = AppRepo.create(id, target);
             client.createApp(app.gitUrl(), app.name);
-//            client.deploy(app.name);
         }
     }
 

@@ -82,7 +82,7 @@ public class RoutingTest {
         ContentResponse appRunners = client.getAppRunners();
         assertThat(appRunners.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
-            "  { 'id': 'app-runner-1', 'url': '" + appRunner1.url().toString() + "', 'maxApps': 1 }," +
+            "  { 'id': 'app-runner-1', 'url': '" + appRunner1.url().toString() + "', 'maxApps': 1, 'systemUrl': '" + appRunner1.url().resolve("/api/v1/system").toString() + "' }," +
             "  { 'id': 'app-runner-2', 'url': '" + appRunner2.url().toString() + "', 'maxApps': 2 }" +
             "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
 

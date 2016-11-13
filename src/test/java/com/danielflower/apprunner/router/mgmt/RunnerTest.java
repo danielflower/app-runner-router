@@ -19,6 +19,7 @@ public class RunnerTest {
         expected.put("id", "one");
         expected.put("url", "http://localhost:8232");
         expected.put("maxApps", 3);
+        expected.put("systemUrl", "http://localhost:8232/api/v1/system");
         JSONAssert.assertEquals(expected, runner.toJSON(), JSONCompareMode.LENIENT);
     }
 

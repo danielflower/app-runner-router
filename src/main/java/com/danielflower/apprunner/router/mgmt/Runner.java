@@ -47,6 +47,7 @@ public class Runner {
         JSONObject vals = new JSONObject();
         vals.put("id", id);
         vals.put("url", url.toString());
+        vals.put("systemUrl", url.resolve("/api/v1/system").toString());
         vals.put("maxApps", maxApps);
         return vals;
     }
