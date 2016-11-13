@@ -143,12 +143,12 @@ public class ReverseProxy extends AsyncProxyServlet {
             status = 404;
             message = "404 Not Found";
         }
+        sendProxyResponseError(clientRequest, proxyResponse, status);
         try {
             proxyResponse.getWriter().write(message);
         } catch (IOException e) {
             log.info("Could not write error", e);
         }
-        sendProxyResponseError(clientRequest, proxyResponse, status);
     }
 
     protected void addProxyHeaders(HttpServletRequest clientRequest, Request proxyRequest) {
