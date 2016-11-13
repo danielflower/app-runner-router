@@ -8,9 +8,7 @@ import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +37,14 @@ public class App {
 
         ProxyMap proxyMap = new ProxyMap();
 
+        HttpConfiguration httpConfig = new HttpConfiguration();
+        httpConfig.setOutputBufferSize(128);
 
         Server jettyServer = new Server();
         List<ServerConnector> serverConnectorList = new ArrayList<>();
         int httpPort = config.getInt(Config.SERVER_HTTP_PORT, -1);
         if (httpPort > -1) {
-            ServerConnector httpConnector = new ServerConnector(jettyServer);
+            ServerConnector httpConnector = new ServerConnector(jettyServer, new HttpConnectionFactory(httpConfig));
             httpConnector.setPort(httpPort);
             serverConnectorList.add(httpConnector);
         }
@@ -55,7 +55,8 @@ public class App {
             sslContextFactory.setKeyStorePath(dirPath(config.getFile("apprunner.keystore.path")));
             sslContextFactory.setKeyStorePassword(config.get("apprunner.keystore.password"));
             sslContextFactory.setKeyManagerPassword(config.get("apprunner.keymanager.password"));
-            ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory);
+            ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory, new HttpConnectionFactory(httpConfig));
+
             httpConnector.setPort(httpsPort);
             serverConnectorList.add(httpConnector);
         }

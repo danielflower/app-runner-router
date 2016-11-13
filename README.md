@@ -29,5 +29,16 @@ app-runner instance. In general, it will simply proxy requests to the correct in
 of exemptions: `GET /api/v1/apps` returns an aggregation of all apps across all instances, and
 `POST /api/v1/apps` will first pick an instance to create the app in, and send it there.
 
+### Running locally
+
+Clone the repo and then run `mvn compile`, and then run the main method in `RunLocal.java`
+
+This will start two App Runner instances (with different versions) and register all the sample apps
+against it, and then open a browser to the API. You can then run something like
+[App Runner Home](https://github.com/danielflower/app-runner-home)
+locally against your local router.
+
 ### Change log
 
+* **1.2.0** Fixed streaming, missing CORS headers, and increased response timeouts. 
+* **1.1.4** Fixed bugs where the router is HTTPS and an instance is HTTP.

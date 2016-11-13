@@ -13,6 +13,7 @@ public class RestClient implements AutoCloseable {
 
     public static RestClient create(String appRunnerUrl) {
         HttpClient c = new HttpClient(new SslContextFactory(true));
+
         try {
             c.start();
             if (appRunnerUrl.endsWith("/")) {

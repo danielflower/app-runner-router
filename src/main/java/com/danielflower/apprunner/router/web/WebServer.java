@@ -3,9 +3,7 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
-import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.jetty.proxy.AsyncProxyServlet;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -27,6 +25,7 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class WebServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
@@ -52,6 +51,7 @@ public class WebServer implements AutoCloseable {
 
     public void start() throws Exception {
         RouterHandlerList handlers = new RouterHandlerList();
+        handlers.addHandler(new CoresHeadersAdderHandler());
         handlers.addHandler(createHomeRedirect());
         handlers.addHandler(new AppsCallAggregator(mapManager, cluster));
         handlers.addRestServiceHandler(createRestService());
@@ -103,11 +103,21 @@ public class WebServer implements AutoCloseable {
         public void filter(ContainerRequestContext request,
                            ContainerResponseContext response) throws IOException {
             response.getHeaders().add("Access-Control-Allow-Origin", "*");
-            response.getHeaders().add("Access-Control-Allow-Headers",
-                "origin, content-type, accept, authorization");
+            response.getHeaders().add("Access-Control-Allow-Headers", "origin, content-type, accept, authorization");
             response.getHeaders().add("Access-Control-Allow-Credentials", "true");
-            response.getHeaders().add("Access-Control-Allow-Methods",
-                "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+            response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+        }
+    }
+
+    private static class CoresHeadersAdderHandler extends AbstractHandler {
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+            if (target.startsWith("/api/")) {
+                response.setHeader("Access-Control-Allow-Origin", "*");
+                response.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization");
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+                response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+            }
         }
     }
 
@@ -127,10 +137,11 @@ public class WebServer implements AutoCloseable {
     }
 
     private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances) {
-        AsyncProxyServlet servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances);
+        ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
         proxyServletHolder.setInitParameter("maxThreads", "100");
+        proxyServletHolder.setInitParameter("timeout", String.valueOf(TimeUnit.MINUTES.toMillis(20)));
         ServletHandler proxyHandler = new ServletHandler();
         proxyHandler.addServletWithMapping(proxyServletHolder, "/*");
         return proxyHandler;
@@ -141,5 +152,4 @@ public class WebServer implements AutoCloseable {
         jettyServer.join();
         jettyServer.destroy();
     }
-
 }

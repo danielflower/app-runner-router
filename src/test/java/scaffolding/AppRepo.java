@@ -5,15 +5,17 @@ import org.eclipse.jgit.api.InitCommand;
 import org.eclipse.jgit.lib.PersonIdent;
 
 import java.io.File;
+import java.io.IOException;
 
 import static scaffolding.Photocopier.copySampleAppToTempDir;
 
 public class AppRepo {
 
-    public static AppRepo create(String name) {
+    public static AppRepo create(String name) throws IOException {
+        return create(name, copySampleAppToTempDir(name));
+    }
+    public static AppRepo create(String name, File originDir) {
         try {
-            File originDir = copySampleAppToTempDir(name);
-
             InitCommand initCommand = Git.init();
             initCommand.setDirectory(originDir);
             Git origin = initCommand.call();

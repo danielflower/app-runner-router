@@ -220,7 +220,6 @@ public class RoutingTest {
         client.registerRunner(appRunner2.id(), appRunner2.url(), 1);
 
         JSONObject system = new JSONObject(client.getSystem().getContentAsString());
-        System.out.println("system = " + system.toString(4));
         JSONArray samples = system.getJSONArray("samples");
         Set<String> ids = new HashSet<>(); // a set to remove any duplicates
         for (Object sampleObj : samples) {

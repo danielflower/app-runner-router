@@ -14,7 +14,7 @@ public class ProxyMap {
         URI old = mapping.put(prefix, url);
         if (old == null) {
             log.info(prefix + " maps to " + url);
-        } else {
+        } else if (!old.toString().equals(url.toString())) {
             log.info(prefix + " maps to " + url + " (previously " + old + ")");
         }
     }
