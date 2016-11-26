@@ -97,34 +97,26 @@ public class RoutingTest {
 
     @Test
     public void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPIWithAnHTTPRouter() throws Exception {
-        appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPI(httpClient, latestAppRunnerWithoutNode, oldAppRunner);
-    }
-    @Test
-    public void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPIWithAnHTTPSRouter() throws Exception {
-        appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPI(httpsClient, latestAppRunnerWithoutNode, oldAppRunner);
-    }
+        assertThat(httpClient.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
 
-    private static void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPI(RestClient client, AppRunnerInstance latestAppRunnerWithoutNode, AppRunnerInstance oldAppRunner) throws Exception {
-        assertThat(client.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
+        assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
+        assertThat(httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 2), equalTo(201, containsString(oldAppRunner.id())));
 
-        assertThat(client.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
-        assertThat(client.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 2), equalTo(201, containsString(oldAppRunner.id())));
-
-        ContentResponse appRunners = client.getAppRunners();
+        ContentResponse appRunners = httpClient.getAppRunners();
         assertThat(appRunners.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
             "  { 'id': 'app-runner-1', 'url': '" + latestAppRunnerWithoutNode.httpsUrl().toString() + "', 'maxApps': 1, 'systemUrl': '" + latestAppRunnerWithoutNode.httpsUrl().resolve("/api/v1/system").toString() + "' }," +
             "  { 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'maxApps': 2 }" +
             "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
 
-        ContentResponse appRunner = client.getRunner("app-runner-2");
+        ContentResponse appRunner = httpClient.getRunner("app-runner-2");
         assertThat(appRunner.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'maxApps': 2 }"
             , appRunner.getContentAsString(), JSONCompareMode.LENIENT);
 
-        assertThat(client.deleteRunner(oldAppRunner.id()), equalTo(200, containsString(oldAppRunner.id())));
-        assertThat(client.getRunner(oldAppRunner.id()), equalTo(404, containsString(oldAppRunner.id())));
-        assertThat(client.deleteRunner(latestAppRunnerWithoutNode.id()), equalTo(200, containsString(latestAppRunnerWithoutNode.id())));
+        assertThat(httpClient.deleteRunner(oldAppRunner.id()), equalTo(200, containsString(oldAppRunner.id())));
+        assertThat(httpClient.getRunner(oldAppRunner.id()), equalTo(404, containsString(oldAppRunner.id())));
+        assertThat(httpClient.deleteRunner(latestAppRunnerWithoutNode.id()), equalTo(200, containsString(latestAppRunnerWithoutNode.id())));
     }
 
     @Test
@@ -179,7 +171,9 @@ public class RoutingTest {
 
         // querying for all the apps returns a combined list
         ContentResponse appsResponse = client.get("/api/v1/apps");
-        JSONAssert.assertEquals("{ 'apps': [ " +
+        JSONAssert.assertEquals("{ " +
+            "'appCount': 2," +
+            "'apps': [ " +
             "{ 'name': 'app1', 'url': '" + client.targetURI().resolve("/app1/") + "' }," +
             "{ 'name': 'app2', 'url': '" + client.targetURI().resolve("/app2/") + "' }" +
             "] }", appsResponse.getContentAsString(), JSONCompareMode.STRICT_ORDER);

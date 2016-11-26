@@ -46,6 +46,7 @@ class AppsCallAggregator extends AbstractHandler {
                 for (JSONObject jsonObject : unsorted) {
                     apps.put(jsonObject);
                 }
+                all.put("appCount", apps.length());
                 all.put("apps", apps);
 
                 response.setStatus(200);
