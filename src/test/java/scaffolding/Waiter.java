@@ -48,9 +48,9 @@ public class Waiter implements AutoCloseable {
         client.stop();
     }
 
-    public static Waiter waitForApp(String name, int port) {
-        URI url = URI.create("http://localhost:" + port + "/" + name + "/");
-        return waitFor(name, url, 30, TimeUnit.SECONDS);
+    public static Waiter waitForApp(URI appServer, String appName) {
+        URI url = appServer.resolve(appName + "/");
+        return waitFor(appName, url, 30, TimeUnit.SECONDS);
     }
 
     public static Waiter waitFor(String name, URI url, long timeout, TimeUnit unit) {

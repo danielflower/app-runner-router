@@ -261,7 +261,7 @@
                                 <artifactItem>
                                     <groupId>com.danielflower.apprunner</groupId>
                                     <artifactId>app-runner</artifactId>
-                                    <version>1.0.1</version>
+                                    <version>1.2.2</version>
                                     <outputDirectory>target/e2e</outputDirectory>
                                     <destFileName>app-runner-1.0.jar</destFileName>
                                 </artifactItem>
@@ -284,6 +284,9 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>com.danielflower.apprunner.router.App</mainClass>
+                                    <manifestEntries>
+                                        <Implementation-Version>${project.version}</Implementation-Version>
+                                    </manifestEntries>
                                 </transformer>
                             </transformers>
                             <filters>

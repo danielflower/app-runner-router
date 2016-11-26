@@ -33,6 +33,10 @@ public class RestClient implements AutoCloseable {
         this.routerUrl = routerUrl;
     }
 
+    public URI targetURI() {
+        return URI.create(routerUrl);
+    }
+
     public ContentResponse createApp(String gitUrl, String appName) throws Exception {
         Fields fields = new Fields();
         fields.add("gitUrl", gitUrl);
@@ -40,6 +44,15 @@ public class RestClient implements AutoCloseable {
             fields.add("appName", appName);
         }
         return client.POST(routerUrl + "/api/v1/apps")
+            .content(new FormContentProvider(fields)).send();
+    }
+
+    public ContentResponse updateApp(String gitUrl, String appName) throws Exception {
+        Fields fields = new Fields();
+        fields.add("appName", appName);
+        fields.add("gitUrl", gitUrl);
+        return client.newRequest(routerUrl + "/api/v1/apps")
+            .method("PUT")
             .content(new FormContentProvider(fields)).send();
     }
 

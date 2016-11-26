@@ -2,6 +2,7 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
+import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -21,8 +22,11 @@ public class HttpsTest {
     private App router;
     private final int httpPort = 20080;
     private final int httpsPort = 20443;
-    private final RestClient httpClient = RestClient.create("http://localhost:" + httpPort);
-    private final RestClient httpsClient = RestClient.create("https://localhost:" + httpsPort);
+
+    // by using hostname for router, and localhost for instances, we test instances where host names don't match which affects some SSL stuff
+    private final String hostname = SystemInfo.create().hostName;
+    private final RestClient httpClient = RestClient.create("http://" + hostname + ":" + httpPort);
+    private final RestClient httpsClient = RestClient.create("https://" + hostname + ":" + httpsPort);
 
     @Test
     public void httpOnlyIsSupported() throws Exception {

@@ -36,8 +36,9 @@ public class ReverseProxyTest {
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap, false);
 
-    public ReverseProxyTest() throws IOException, InterruptedException {
+    public ReverseProxyTest() throws IOException {
     }
+
 
     @Test
     public void returnsNullIfNoValueInProxyMap() throws Exception {

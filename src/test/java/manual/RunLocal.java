@@ -127,10 +127,10 @@ public class RunLocal {
     }
 
     private static void registerRunner(RestClientThatThrows client, AppRunnerInstance runner, int maxInstances) throws Exception {
-        log.info("Registering " + runner.url() + " with the router");
-        ContentResponse contentResponse = client.registerRunner(runner.id(), runner.url(), maxInstances);
+        log.info("Registering " + runner.httpUrl() + " with the router");
+        ContentResponse contentResponse = client.registerRunner(runner.id(), runner.httpUrl(), maxInstances);
         if (contentResponse.getStatus() != 201) {
-            throw new RuntimeException("Could not register " + runner.url() + ": " + contentResponse.getStatus() + " - " + contentResponse.getContentAsString());
+            throw new RuntimeException("Could not register " + runner.httpUrl() + ": " + contentResponse.getStatus() + " - " + contentResponse.getContentAsString());
         }
     }
 

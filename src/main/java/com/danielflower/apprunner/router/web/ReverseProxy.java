@@ -57,7 +57,7 @@ public class ReverseProxy extends AsyncProxyServlet {
 
         log.debug(clientRequest.getMethod() + " " + uri);
         if (uri.startsWith("/api/")) {
-            if (isAppCreationPost(clientRequest)) {
+            if (isAppCreationOrUpdatePost(clientRequest)) {
                 Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());
                 if (targetRunner.isPresent()) {
                     URI targetAppRunner = targetRunner.get().url;
@@ -103,25 +103,34 @@ public class ReverseProxy extends AsyncProxyServlet {
     @Override
     protected void onServerResponseHeaders(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onServerResponseHeaders(clientRequest, proxyResponse, serverResponse);
-        if (isAppCreationPost(clientRequest)) {
+        if (isAppCreationOrUpdatePost(clientRequest)) {
             URI runnerURI = serverResponse.getRequest().getURI();
-            if (proxyResponse.getStatus() == 201) {
-                String appName = proxyResponse.getHeader("Location");
-                appName = appName.substring(appName.lastIndexOf("/") + 1);
+            String locationHeader = proxyResponse.getHeader("Location");
+            if (proxyResponse.getStatus() >= 200 && proxyResponse.getStatus() <= 299) {
+                String appName = locationHeader.substring(locationHeader.lastIndexOf("/") + 1);
                 URI targetAppRunnerURI = runnerURI.resolve("/" + appName);
                 proxyMap.add(appName, targetAppRunnerURI);
             } else {
-                cluster.getRunnerByURL(runnerURI).ifPresent(runner -> runner.numberOfApps.decrementAndGet());
+                cluster.getRunnerByURL(runnerURI).ifPresent(runner -> {
+                    log.info("Decrementing app count for " + runner.id + " because " + locationHeader + " was deleted.");
+                    runner.numberOfApps.decrementAndGet();
+                });
             }
         } else if (isAppDeletionPost(clientRequest) && proxyResponse.getStatus() == 200) {
             URI runnerURI = serverResponse.getRequest().getURI();
             String appName = clientRequest.getRequestURI().substring(clientRequest.getRequestURI().lastIndexOf('/') + 1);
             proxyMap.remove(appName);
-            cluster.getRunnerByURL(runnerURI).ifPresent(runner -> runner.numberOfApps.decrementAndGet());
+            cluster.getRunnerByURL(runnerURI).ifPresent(runner -> {
+                log.info("Decrementing app count for " + runner.id + " because " + appName + " was deleted.");
+                runner.numberOfApps.decrementAndGet();
+            });
         }
     }
 
-    private static boolean isAppCreationPost(HttpServletRequest clientRequest) {
+    private static boolean isAppCreationOrUpdatePost(HttpServletRequest clientRequest) {
+        // Don't know if it's a creation or update, and can't access the form params to get the app name as it will cause the proxy servlet to crash.
+        // So, if someone POSTs with an existing app ID, it will either update if it happens to hit the existing server it's on,
+        // otherwise it will result in two instances running. This is undefined behaviour as the router doesn't really
         return clientRequest.getMethod().toUpperCase().equals("POST") && clientRequest.getRequestURI().equals("/api/v1/apps");
     }
 
@@ -136,7 +145,7 @@ public class ReverseProxy extends AsyncProxyServlet {
         // this is called if rewriteTarget returns null
         int status;
         String message;
-        if (isAppCreationPost(clientRequest)) {
+        if (isAppCreationOrUpdatePost(clientRequest)) {
             status = 503;
             message = "There are no App Runner instances with free capacity";
         } else {

@@ -59,6 +59,7 @@ public class App {
             sslContextFactory.setKeyStorePath(dirPath(config.getFile("apprunner.keystore.path")));
             sslContextFactory.setKeyStorePassword(config.get("apprunner.keystore.password"));
             sslContextFactory.setKeyManagerPassword(config.get("apprunner.keymanager.password"));
+            sslContextFactory.setKeyStoreType(config.get("apprunner.keystore.type", "JKS"));
             ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory, new HttpConnectionFactory(httpConfig));
 
             httpConnector.setPort(httpsPort);

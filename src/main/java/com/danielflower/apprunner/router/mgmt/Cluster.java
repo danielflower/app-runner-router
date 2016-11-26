@@ -1,9 +1,10 @@
 package com.danielflower.apprunner.router.mgmt;
 
-import com.danielflower.apprunner.router.web.ProxyMap;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -15,7 +16,10 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static com.danielflower.apprunner.router.Config.dirPath;
+
 public class Cluster {
+    private static final Logger log = LoggerFactory.getLogger(Cluster.class);
 
     private final File config;
     private final List<Runner> runners = new CopyOnWriteArrayList<>();
@@ -36,8 +40,9 @@ public class Cluster {
                 runners.add(Runner.fromJSON((JSONObject) o));
             }
         } else {
-            config.getParentFile().mkdirs();
-            config.createNewFile();
+            if (!config.getParentFile().mkdirs() || !config.createNewFile()) {
+                log.warn("Couldn't create " + dirPath(config) + " apparently, which is a bit worrying but maybe it's okay?");
+            }
         }
         Cluster cluster = new Cluster(config, mapManager, runners);
         if (isNew) {
@@ -64,7 +69,7 @@ public class Cluster {
         save();
     }
 
-    public void save() throws IOException {
+    private void save() throws IOException {
         FileUtils.write(config, toJSON().toString(4), "UTF-8", false);
     }
 
@@ -98,9 +103,13 @@ public class Cluster {
             }
         }
         if (leastContended != null) {
+            log.info("Incrementing app count for " + leastContended.id + " because apparently it is the least contended with "
+                + leastContended.numberOfApps + " apps (with max capacity of " + leastContended.maxApps + "). The full mapping is: " + currentMapping);
             leastContended.numberOfApps.incrementAndGet();
+            return Optional.of(leastContended);
         }
-        return Optional.ofNullable(leastContended);
+        log.info("Could not allocate a runner because it seems there is no capacity. Current mapping: " + currentMapping);
+        return Optional.empty();
     }
 
     public Optional<Runner> getRunnerByURL(URI url) {
@@ -112,7 +121,4 @@ public class Cluster {
         return Optional.empty();
     }
 
-    public void updateProxyMap(Runner runner, ProxyMap proxyMap) {
-
-    }
 }

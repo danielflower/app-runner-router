@@ -24,7 +24,8 @@ public class AppRunnerInstance {
     private final Logger log;
     private final String id;
     private Killer killer;
-    private URI url;
+    private URI httpUrl;
+    private URI httpsUrl;
 
     private AppRunnerInstance(String jarName, String id) {
         this.jarName = jarName;
@@ -53,7 +54,8 @@ public class AppRunnerInstance {
     public AppRunnerInstance start() {
         File dir = new File("target/e2e/" + id + "/" + System.currentTimeMillis());
         assertTrue(dir.mkdirs());
-        int port = getAFreePort();
+        int httpPort = getAFreePort();
+        int httpsPort = getAFreePort();
         File uberJar = new File(FilenameUtils.separatorsToSystem("target/e2e/" + jarName));
         if (!uberJar.isFile()) {
             throw new RuntimeException("Could not find the app-runner jar. Try running mvn compile first.");
@@ -61,18 +63,26 @@ public class AppRunnerInstance {
 
         CommandLine command = new CommandLine("java")
             .addArgument("-Dlogback.configurationFile=" + dirPath(new File("src/test/resources/logback-test.xml")))
-            .addArgument("-Dappserver.port=" + port)
+            .addArgument("-Dappserver.port=" + httpPort)
+            .addArgument("-Dappserver.https.port=" + httpsPort)
             .addArgument("-Dappserver.data.dir=" + dirPath(new File(dir, "data")))
+            .addArgument("-Dapprunner.keystore.path=" + dirPath(new File("local/test.keystore")))
+            .addArgument("-Dapprunner.keystore.password=password")
+            .addArgument("-Dapprunner.keymanager.password=password")
             .addArgument("-jar")
             .addArgument(dirPath(uberJar));
-        url = URI.create("http://localhost:" + port + "/");
-        log.info("Starting " + id + " at " + url);
-        this.killer = new ProcessStarter(log).startDaemon(env, command, dir, Waiter.waitFor(id, url, 60, TimeUnit.SECONDS));
+        httpUrl = URI.create("http://localhost:" + httpPort + "/");
+        httpsUrl = URI.create("https://localhost:" + httpsPort + "/");
+        log.info("Starting " + id + " at " + httpUrl);
+        this.killer = new ProcessStarter(log).startDaemon(env, command, dir, Waiter.waitFor(id, httpUrl, 60, TimeUnit.SECONDS));
         return this;
     }
 
-    public URI url() {
-        return this.url;
+    public URI httpUrl() {
+        return this.httpUrl;
+    }
+    public URI httpsUrl() {
+        return this.httpsUrl;
     }
 
     public void shutDown() {

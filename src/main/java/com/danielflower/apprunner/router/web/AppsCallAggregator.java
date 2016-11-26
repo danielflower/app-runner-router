@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -40,7 +41,7 @@ class AppsCallAggregator extends AbstractHandler {
                         unsorted.add((JSONObject) singleApp);
                     }
                 }
-                unsorted.sort((o1, o2) -> o1.getString("name").compareTo(o2.getString("name")));
+                unsorted.sort(Comparator.comparing(o -> o.getString("name")));
                 JSONArray apps = new JSONArray();
                 for (JSONObject jsonObject : unsorted) {
                     apps.put(jsonObject);
