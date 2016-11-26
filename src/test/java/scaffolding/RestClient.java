@@ -49,9 +49,8 @@ public class RestClient implements AutoCloseable {
 
     public ContentResponse updateApp(String gitUrl, String appName) throws Exception {
         Fields fields = new Fields();
-        fields.add("appName", appName);
         fields.add("gitUrl", gitUrl);
-        return client.newRequest(routerUrl + "/api/v1/apps")
+        return client.newRequest(routerUrl + "/api/v1/apps/" + appName)
             .method("PUT")
             .content(new FormContentProvider(fields)).send();
     }
