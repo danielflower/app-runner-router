@@ -2,7 +2,6 @@ package com.danielflower.apprunner.router.mgmt;
 
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
-import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.proxy.AbstractProxyServlet;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,7 +16,6 @@ public class ForwardedHeadersAdder extends AbstractProxyServlet {
 
     public void addHeaders(HttpServletRequest clientRequest, Request targetRequest) {
         if (clientRequest != null) {
-            targetRequest.header(HttpHeader.HOST, clientRequest.getHeader("HOST"));
             addProxyHeaders(clientRequest, targetRequest);
         }
     }

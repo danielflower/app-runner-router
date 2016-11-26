@@ -2,6 +2,7 @@ package e2e;
 
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
+import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.CoreMatchers;
@@ -62,8 +63,9 @@ public class RoutingTest {
         this.env = env;
         router = new App(new Config(env));
         router.start();
-        httpClient = RestClient.create("http://localhost:" + routerHttpPort);
-        httpsClient = RestClient.create("https://localhost:" + routerHttpsPort);
+        String host = SystemInfo.create().hostName;
+        httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
+        httpsClient = RestClient.create("https://" + host + ":" + routerHttpsPort);
 
         clearApps(latestAppRunnerWithoutNode);
         clearApps(oldAppRunner);
@@ -177,7 +179,6 @@ public class RoutingTest {
 
         // querying for all the apps returns a combined list
         ContentResponse appsResponse = client.get("/api/v1/apps");
-        System.out.println("appsResponse = " + appsResponse.getContentAsString());
         JSONAssert.assertEquals("{ 'apps': [ " +
             "{ 'name': 'app1', 'url': '" + client.targetURI().resolve("/app1/") + "' }," +
             "{ 'name': 'app2', 'url': '" + client.targetURI().resolve("/app2/") + "' }" +

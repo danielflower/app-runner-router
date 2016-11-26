@@ -103,7 +103,11 @@ public class RunLocal {
             }
             unzip(zip, target);
             AppRepo app = AppRepo.create(id, target);
-            client.createApp(app.gitUrl(), app.name);
+            try {
+                client.createApp(app.gitUrl(), app.name);
+            } catch (Exception e) {
+                log.info("Error while creating " + app.name + " so will just skip it");
+            }
         }
     }
 

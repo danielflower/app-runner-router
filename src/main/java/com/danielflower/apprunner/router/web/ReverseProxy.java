@@ -3,7 +3,6 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -158,12 +157,6 @@ public class ReverseProxy extends AsyncProxyServlet {
         } catch (IOException e) {
             log.info("Could not write error", e);
         }
-    }
-
-    protected void addProxyHeaders(HttpServletRequest clientRequest, Request proxyRequest) {
-        super.addProxyHeaders(clientRequest, proxyRequest);
-        proxyRequest.getHeaders().remove("Host");
-        proxyRequest.header("Host", clientRequest.getHeader("Host"));
     }
 
     @Override
