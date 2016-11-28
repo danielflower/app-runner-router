@@ -88,16 +88,13 @@ public class Cluster {
             .findFirst();
     }
 
-    public Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping) {
+    public synchronized Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping) {
         Runner leastContended = null;
         for (Runner runner : runners) {
+            int num = updateNumberOfAppsForRunner(currentMapping, runner);
             if (!runner.hasCapacity()) {
                 continue;
             }
-            int num = (int)currentMapping.values().stream()
-                .filter(url ->  url.getAuthority().equals(runner.url.getAuthority()))
-                .count();
-            runner.numberOfApps.set(num);
             if (leastContended == null || leastContended.numberOfApps.get() > num) {
                 leastContended = runner;
             }
@@ -110,6 +107,14 @@ public class Cluster {
         }
         log.info("Could not allocate a runner because it seems there is no capacity. Current mapping: " + currentMapping);
         return Optional.empty();
+    }
+
+    private static int updateNumberOfAppsForRunner(ConcurrentHashMap<String, URI> currentMapping, Runner runner) {
+        int num = (int)currentMapping.values().stream()
+            .filter(url ->  url.getAuthority().equals(runner.url.getAuthority()))
+            .count();
+        runner.numberOfApps.set(num);
+        return num;
     }
 
     public Optional<Runner> getRunnerByURL(URI url) {
