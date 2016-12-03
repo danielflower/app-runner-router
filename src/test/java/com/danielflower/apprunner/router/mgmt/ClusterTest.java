@@ -63,11 +63,18 @@ public class ClusterTest {
     @Test
     public void allocatesRunnersBasedOnWhatIsAlreadyLoaded() throws Exception {
         ProxyMap proxyMap = new ProxyMap();
+
+        // no runners, so no allocation
         assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
 
+        // Add two runners to the cluster
         cluster.addRunner(clientRequest, instanceOne);
         cluster.addRunner(clientRequest, instanceTwo);
+
+        // Add an app to runner 1
         proxyMap.add("blah", instanceOne.url.resolve("/blah/"));
+
+        // When allocating, runner 2 should be allocated
         assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
     }
 

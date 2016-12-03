@@ -89,32 +89,30 @@ public class Cluster {
     }
 
     public synchronized Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping) {
+        refreshRunnerCountCache(currentMapping);
         Runner leastContended = null;
         for (Runner runner : runners) {
-            int num = updateNumberOfAppsForRunner(currentMapping, runner);
             if (!runner.hasCapacity()) {
                 continue;
             }
-            if (leastContended == null || leastContended.numberOfApps.get() > num) {
+            if (leastContended == null || leastContended.numberOfApps() > runner.numberOfApps()) {
                 leastContended = runner;
             }
         }
         if (leastContended != null) {
             log.info("Incrementing app count for " + leastContended.id + " because apparently it is the least contended with "
-                + leastContended.numberOfApps + " apps (with max capacity of " + leastContended.maxApps + "). The full mapping is: " + currentMapping);
-            leastContended.numberOfApps.incrementAndGet();
+                + leastContended.numberOfApps() + " apps (with max capacity of " + leastContended.maxApps + "). The full mapping is: " + currentMapping);
+            leastContended.incrementNumberOfApps();
             return Optional.of(leastContended);
         }
         log.info("Could not allocate a runner because it seems there is no capacity. Current mapping: " + currentMapping);
         return Optional.empty();
     }
 
-    private static int updateNumberOfAppsForRunner(ConcurrentHashMap<String, URI> currentMapping, Runner runner) {
-        int num = (int)currentMapping.values().stream()
-            .filter(url ->  url.getAuthority().equals(runner.url.getAuthority()))
-            .count();
-        runner.numberOfApps.set(num);
-        return num;
+    public void refreshRunnerCountCache(ConcurrentHashMap<String, URI> currentMapping) {
+        for (Runner runner : runners) {
+            runner.refreshRunnerCountCache(currentMapping);
+        }
     }
 
     public Optional<Runner> getRunnerByURL(URI url) {

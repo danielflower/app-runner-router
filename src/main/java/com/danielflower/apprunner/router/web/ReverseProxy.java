@@ -112,7 +112,7 @@ public class ReverseProxy extends AsyncProxyServlet {
             } else {
                 cluster.getRunnerByURL(runnerURI).ifPresent(runner -> {
                     log.info("Decrementing app count for " + runner.id + " because " + locationHeader + " was deleted.");
-                    runner.numberOfApps.decrementAndGet();
+                    runner.refreshRunnerCountCache(proxyMap.getAll());
                 });
             }
         } else if (isAppDeletionPost(clientRequest) && proxyResponse.getStatus() == 200) {
@@ -121,7 +121,7 @@ public class ReverseProxy extends AsyncProxyServlet {
             proxyMap.remove(appName);
             cluster.getRunnerByURL(runnerURI).ifPresent(runner -> {
                 log.info("Decrementing app count for " + runner.id + " because " + appName + " was deleted.");
-                runner.numberOfApps.decrementAndGet();
+                runner.refreshRunnerCountCache(proxyMap.getAll());
             });
         }
     }

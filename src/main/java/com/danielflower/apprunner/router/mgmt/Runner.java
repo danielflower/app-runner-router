@@ -3,13 +3,17 @@ package com.danielflower.apprunner.router.mgmt;
 import org.json.JSONObject;
 
 import java.net.URI;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Runner {
     public final String id;
     public final URI url;
     public final int maxApps;
-    public AtomicInteger numberOfApps = new AtomicInteger(0);
+    private AtomicInteger appCount = new AtomicInteger(0);
+    public int numberOfApps() {
+        return appCount.get();
+    }
 
     public Runner(String id, URI url, int maxApps) {
         this.id = id;
@@ -57,6 +61,18 @@ public class Runner {
     }
 
     public boolean hasCapacity() {
-        return numberOfApps.get() < maxApps;
+        return appCount.get() < maxApps;
+    }
+
+    public int refreshRunnerCountCache(ConcurrentHashMap<String, URI> currentMapping) {
+        int num = (int) currentMapping.values().stream()
+            .filter(otherUrl -> this.url.getAuthority().equals(otherUrl.getAuthority()))
+            .count();
+        appCount.set(num);
+        return num;
+    }
+
+    public int incrementNumberOfApps() {
+        return appCount.incrementAndGet();
     }
 }
