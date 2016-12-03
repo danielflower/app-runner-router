@@ -43,6 +43,8 @@ public class App {
 
         HttpConfiguration httpConfig = new HttpConfiguration();
         httpConfig.setOutputBufferSize(128);
+        httpConfig.addCustomizer(new SecureRequestCustomizer());
+        httpConfig.addCustomizer(new ForwardedRequestCustomizer()); // must come last so the protocol doesn't get overwritten
 
         Server jettyServer = new Server();
         List<ServerConnector> serverConnectorList = new ArrayList<>();
