@@ -19,6 +19,7 @@ import scaffolding.RestClient;
 import scaffolding.Waiter;
 
 import java.io.File;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -99,14 +100,15 @@ public class RoutingTest {
     public void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPIWithAnHTTPRouter() throws Exception {
         assertThat(httpClient.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
 
-        assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
+        URI urlOfLatest = latestAppRunnerWithoutNode.httpsUrl();
+        assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), urlOfLatest, 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
         assertThat(httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 2), equalTo(201, containsString(oldAppRunner.id())));
 
         ContentResponse appRunners = httpClient.getAppRunners();
         assertThat(appRunners.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
-            "  { 'id': 'app-runner-1', 'url': '" + latestAppRunnerWithoutNode.httpsUrl().toString() + "', 'maxApps': 1, 'systemUrl': '" + latestAppRunnerWithoutNode.httpsUrl().resolve("/api/v1/system").toString() + "' }," +
-            "  { 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'maxApps': 2 }" +
+            "  { 'id': 'app-runner-1', 'url': '" + urlOfLatest.toString() + "', 'appCount': 0, 'maxApps': 1, " + "'systemUrl': '" + urlOfLatest.resolve("/api/v1/system").toString() + "', 'appsUrl': '" + urlOfLatest.resolve("/api/v1/apps").toString() + "' }," +
+            "  { 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'appCount': 0, 'maxApps': 2 }" +
             "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
 
         ContentResponse appRunner = httpClient.getRunner("app-runner-2");
@@ -181,6 +183,12 @@ public class RoutingTest {
         assertThat(appsResponse.getStatus(), is(200));
 
         assertThat(client.get("/api/v1/swagger.json"), equalTo(200, containsString("/apps/{name}")));
+
+        JSONAssert.assertEquals("{ runners: [" +
+                "{ id: " + latestAppRunner.id() + ", 'appCount': 1 }," +
+                "{ id: " + oldAppRunner.id() + ", 'appCount': 1 }" +
+                "] }",
+            client.getAppRunners().getContentAsString(), JSONCompareMode.LENIENT);
 
         client.stop("app1");
         client.stop("app2");
