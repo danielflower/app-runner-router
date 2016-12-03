@@ -12,6 +12,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Optional;
@@ -64,26 +65,69 @@ public class RunnerResource {
             return Response.status(400).entity("The max apps value must be at least 1").build();
         }
 
-        Runner runner = new Runner(id, URI.create(url), maxApps);
-        log.info("Creating " + runner.toJSON().toString());
-
         try {
-            int status;
-            Optional<Runner> existing = cluster.runner(id);
-            if (existing.isPresent()) {
-                cluster.deleteRunner(runner);
-                status = 200;
-            } else {
-                status = 201;
+            String resourceLocation = uriInfo.getRequestUri() + "/" + urlEncode(id);
+            if (cluster.runner(id).isPresent()) {
+                return Response
+                    .status(409)
+                    .header("Location", resourceLocation)
+                    .entity("A runner with the ID " + id + " already exists. To update this runner, instead make a PUT request to " + resourceLocation).build();
             }
+            Runner runner = new Runner(id, URI.create(url), maxApps);
+            log.info("Creating " + runner.toJSON().toString());
             cluster.addRunner(clientRequest, runner);
-            return Response.status(status)
-                .header("Location", uriInfo.getRequestUri() + "/" + URLEncoder.encode(id, "UTF-8"))
+            return Response.status(201)
+                .header("Location", resourceLocation)
                 .entity(runner.toJSON().toString(4))
                 .build();
         } catch (Exception e) {
             log.error("Error while adding app runner instance", e);
             return Response.serverError().entity("Error while adding app runner instance: " + e.getMessage()).build();
+        }
+    }
+
+    @PUT
+    @Path("/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response update(@Context HttpServletRequest clientRequest,
+                           @Context UriInfo uriInfo,
+                           @PathParam("id") String id,
+                           @FormParam("url") String url,
+                           @FormParam("maxApps") int maxApps) {
+
+        if (isBlank(url)) {
+            return Response.status(400).entity("No runner URL was specified").build();
+        }
+        if (maxApps < 1) {
+            return Response.status(400).entity("The max apps value must be at least 1").build();
+        }
+
+        try {
+            String resourceLocation = uriInfo.getRequestUri().toString();
+            if (!cluster.runner(id).isPresent()) {
+                return Response
+                    .status(404)
+                    .entity("No runner with the ID " + id + " exists").build();
+            }
+            Runner runner = new Runner(id, URI.create(url), maxApps);
+            log.info("Updating " + runner.toJSON().toString());
+            cluster.deleteRunner(runner);
+            cluster.addRunner(clientRequest, runner);
+            return Response.status(200)
+                .header("Location", resourceLocation)
+                .entity(runner.toJSON().toString(4))
+                .build();
+        } catch (Exception e) {
+            log.error("Error while updating app runner instance", e);
+            return Response.serverError().entity("Error while updating app runner instance: " + e.getMessage()).build();
+        }
+    }
+
+    public static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Unsupported Encoding for " + value, e);
         }
     }
 

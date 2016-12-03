@@ -221,8 +221,18 @@ public class RoutingTest {
     @Test
     public void runnerDetailsCanBeUpdated() throws Exception {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
-        ContentResponse response = httpClient.registerRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100);
-        assertThat(response, equalTo(200, Matchers.containsString("100")));
+
+        // Can't POST to an existing runner
+        assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100),
+            equalTo(409, Matchers.containsString("A runner with the ID " + latestAppRunnerWithoutNode.id() + " already exists")));
+
+        // Can't PUT to a non-existent runner
+        assertThat(httpClient.updateRunner("non-existent-runner-id", latestAppRunnerWithoutNode.httpUrl(), 50),
+            equalTo(404, Matchers.equalTo("No runner with the ID non-existent-runner-id exists")));
+
+        // Can update a runner
+        assertThat(httpClient.updateRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100),
+            equalTo(200, Matchers.containsString("100")));
 
         JSONArray runners = new JSONObject(httpClient.getAppRunners().getContentAsString()).getJSONArray("runners");
         assertThat(runners.length(), is(1));

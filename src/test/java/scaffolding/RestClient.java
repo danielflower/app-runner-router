@@ -91,6 +91,16 @@ public class RestClient implements AutoCloseable {
     }
 
 
+    public ContentResponse updateRunner(String id, URI url, int maxInstances) throws Exception {
+        Fields fields = new Fields();
+        fields.add("url", url.toString());
+        fields.add("maxApps", String.valueOf(maxInstances));
+        return client.newRequest(routerUrl + "/api/v1/runners/" + id)
+            .method("PUT")
+            .content(new FormContentProvider(fields)).send();
+    }
+
+
     public ContentResponse getAppRunners() throws Exception {
         return get("/api/v1/runners");
     }
