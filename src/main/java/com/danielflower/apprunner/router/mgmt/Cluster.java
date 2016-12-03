@@ -16,8 +16,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static com.danielflower.apprunner.router.Config.dirPath;
-
 public class Cluster {
     private static final Logger log = LoggerFactory.getLogger(Cluster.class);
 
@@ -40,9 +38,8 @@ public class Cluster {
                 runners.add(Runner.fromJSON((JSONObject) o));
             }
         } else {
-            if (!config.getParentFile().mkdirs() || !config.createNewFile()) {
-                log.warn("Couldn't create " + dirPath(config) + " apparently, which is a bit worrying but maybe it's okay?");
-            }
+            config.getParentFile().mkdirs();
+            config.createNewFile();
         }
         Cluster cluster = new Cluster(config, mapManager, runners);
         if (isNew) {
