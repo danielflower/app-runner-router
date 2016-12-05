@@ -106,7 +106,7 @@ public class RunLocal {
             try {
                 client.createApp(app.gitUrl(), app.name);
             } catch (Exception e) {
-                log.info("Error while creating " + app.name + " so will just skip it");
+                log.warn("Error while creating " + app.name + " so will just skip it. Reason: " + e.getMessage());
             }
         }
     }

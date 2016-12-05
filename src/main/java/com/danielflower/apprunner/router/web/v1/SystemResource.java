@@ -9,7 +9,6 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.http.HttpField;
-import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -176,8 +175,8 @@ public class SystemResource {
                     try {
                         Request targetRequest = httpClient.newRequest(zipUri)
                             .method(HttpMethod.GET)
-                            .header(HttpHeader.HOST, uri.getRequestUri().getAuthority())
                             .timeout(30, TimeUnit.SECONDS);
+                        forwardedHeadersAdder.addHeaders(null, targetRequest);
                         ContentResponse targetResponse = targetRequest.send();
                         if (targetResponse.getStatus() == 200) {
                             Response.ResponseBuilder clientResponse = Response.ok(targetResponse.getContent());
