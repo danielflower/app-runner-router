@@ -40,5 +40,9 @@ locally against your local router.
 
 ### Change log
 
+* **1.5.0** Added optional publishing of request metrics over UDP.
+* **1.4.0** Changed the `runners` API to allow `PUT`ing changes to runner instances (and `POST`ing to an existing one returns a `409`)
+plus added `appCount` to the runners API.
+* **1.3.0** Added `appCount` to apps api and fixed X-Forwarded-* headers.
 * **1.2.0** Fixed streaming, missing CORS headers, added full runner info the systems API, and increased response timeouts. 
 * **1.1.4** Fixed bugs where the router is HTTPS and an instance is HTTP.

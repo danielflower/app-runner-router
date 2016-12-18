@@ -2,6 +2,7 @@ package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
+import com.danielflower.apprunner.router.monitoring.RequestInfo;
 import org.jmock.integration.junit4.JUnitRuleMockery;
 import org.junit.Rule;
 import org.junit.Test;
@@ -16,14 +17,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.Principal;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class ReverseProxyTest {
 
@@ -34,7 +33,7 @@ public class ReverseProxyTest {
     private ProxyMap proxyMap = new ProxyMap();
     private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
     private Cluster cluster = Cluster.load(configFile, mapManager);
-    private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap, false);
+    private ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap, false, null);
 
     public ReverseProxyTest() throws IOException {
     }
@@ -59,6 +58,19 @@ public class ReverseProxyTest {
         assertThat(reverseProxy.rewriteTarget(request("/my-app?blah=ha")), is("http://localhost:12345/my-app?blah=ha"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/?blah=ha")), is("http://localhost:12345/my-app/?blah=ha"));
         assertThat(reverseProxy.rewriteTarget(request("/my-app/some/thing?blah=ha")), is("http://localhost:12345/my-app/some/thing?blah=ha"));
+    }
+
+    @Test
+    public void requestInfoIsAppendedToTheRequest() throws MalformedURLException {
+        proxyMap.add("my-app", URI.create("http://localhost:12345/my-app"));
+        HttpServletRequest request = request("/my-app/some/thing?blah=ha");
+        reverseProxy.rewriteTarget(request);
+        RequestInfo info = ReverseProxy.getInfo(request);
+        assertThat(info.appName, equalTo("my-app"));
+        assertThat(info.method, equalTo("GET"));
+        assertThat(info.targetHost, equalTo("localhost:12345"));
+        assertThat(info.url, equalTo("http://localhost/my-app/some/thing?blah=ha"));
+
     }
 
     private HttpServletRequest request(String path) throws MalformedURLException {
@@ -93,7 +105,7 @@ public class ReverseProxyTest {
             }
 
             public String getMethod() {
-                return null;
+                return "GET";
             }
 
             public String getPathInfo() {
@@ -133,7 +145,7 @@ public class ReverseProxyTest {
             }
 
             public StringBuffer getRequestURL() {
-                return null;
+                return new StringBuffer("http://" + url.getAuthority() + url.getPath());
             }
 
             public String getServletPath() {
@@ -190,8 +202,9 @@ public class ReverseProxyTest {
                 return null;
             }
 
+            private Map<String, Object> attributes = new HashMap<>();
             public Object getAttribute(String name) {
-                return null;
+                return attributes.get(name);
             }
 
             public Enumeration<String> getAttributeNames() {
@@ -266,6 +279,7 @@ public class ReverseProxyTest {
             }
 
             public void setAttribute(String name, Object o) {
+                attributes.put(name, o);
             }
 
             public void removeAttribute(String name) {

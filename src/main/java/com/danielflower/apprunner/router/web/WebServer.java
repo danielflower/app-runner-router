@@ -3,6 +3,7 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
+import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -37,8 +38,9 @@ public class WebServer implements AutoCloseable {
     private final MapManager mapManager;
     private final String accessLogFilename;
     private final boolean allowUntrustedInstances;
+    private final AppRequestListener appRequestListener;
 
-    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances) {
+    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances, AppRequestListener appRequestListener) {
         this.jettyServer = jettyServer;
         this.cluster = cluster;
         this.mapManager = mapManager;
@@ -47,6 +49,7 @@ public class WebServer implements AutoCloseable {
         this.localRestResources = localRestResources;
         this.accessLogFilename = accessLogFilename;
         this.allowUntrustedInstances = allowUntrustedInstances;
+        this.appRequestListener = appRequestListener;
     }
 
     public void start() throws Exception {
@@ -55,7 +58,7 @@ public class WebServer implements AutoCloseable {
         handlers.addHandler(createHomeRedirect());
         handlers.addHandler(new AppsCallAggregator(mapManager, cluster));
         handlers.addRestServiceHandler(createRestService());
-        handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap, allowUntrustedInstances));
+        handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener));
         jettyServer.setHandler(handlers);
         addAccessLog();
         jettyServer.start();
@@ -136,8 +139,8 @@ public class WebServer implements AutoCloseable {
         };
     }
 
-    private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances) {
-        ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances);
+    private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances, AppRequestListener appRequestListener) {
+        ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
         proxyServletHolder.setInitParameter("maxThreads", "100");

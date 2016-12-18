@@ -9,27 +9,30 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import java.net.URI;
 import java.net.URLEncoder;
 
-public class RestClient implements AutoCloseable {
+public class RestClient {
 
-    public static RestClient create(String appRunnerUrl) {
+    public static final HttpClient client;
+
+    static {
         HttpClient c = new HttpClient(new SslContextFactory(true));
-
         try {
             c.start();
-            if (appRunnerUrl.endsWith("/")) {
-                appRunnerUrl = appRunnerUrl.substring(0, appRunnerUrl.length() - 1);
-            }
-            return new RestClient(c, appRunnerUrl);
         } catch (Exception e) {
             throw new RuntimeException("Unable to make client", e);
         }
+        client = c;
     }
 
-    private final HttpClient client;
+    public static RestClient create(String appRunnerUrl) {
+        if (appRunnerUrl.endsWith("/")) {
+            appRunnerUrl = appRunnerUrl.substring(0, appRunnerUrl.length() - 1);
+        }
+        return new RestClient(appRunnerUrl);
+    }
+
     public final String routerUrl;
 
-    private RestClient(HttpClient client, String routerUrl) {
-        this.client = client;
+    private RestClient(String routerUrl) {
         this.routerUrl = routerUrl;
     }
 
@@ -104,9 +107,11 @@ public class RestClient implements AutoCloseable {
     public ContentResponse getAppRunners() throws Exception {
         return get("/api/v1/runners");
     }
+
     public ContentResponse getSystem() throws Exception {
         return get("/api/v1/system");
     }
+
     public ContentResponse getRunner(String id) throws Exception {
         return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));
     }
@@ -115,8 +120,4 @@ public class RestClient implements AutoCloseable {
         return client.newRequest(routerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
     }
 
-    @Override
-    public void close() throws Exception {
-        client.stop();
-    }
 }

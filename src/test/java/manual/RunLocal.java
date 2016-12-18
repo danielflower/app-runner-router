@@ -144,10 +144,6 @@ public class RunLocal {
         } finally {
             if (appRunner1 != null) appRunner1.shutDown();
             if (appRunner2 != null) appRunner2.shutDown();
-            try {
-                client.close();
-            } catch (Exception e) {
-            }
         }
     }
 

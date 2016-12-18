@@ -2,6 +2,8 @@ package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import com.danielflower.apprunner.router.monitoring.AppRequestListener;
+import com.danielflower.apprunner.router.monitoring.RequestInfo;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
@@ -29,11 +31,13 @@ public class ReverseProxy extends AsyncProxyServlet {
     private final ProxyMap proxyMap;
     private final Cluster cluster;
     private final boolean allowUntrustedInstances;
+    private final AppRequestListener appRequestListener;
 
-    public ReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances) {
+    public ReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances, AppRequestListener appRequestListener) {
         this.cluster = cluster;
         this.proxyMap = proxyMap;
         this.allowUntrustedInstances = allowUntrustedInstances;
+        this.appRequestListener = appRequestListener;
     }
 
     protected String filterServerResponseHeader(HttpServletRequest clientRequest, Response serverResponse, String headerName, String headerValue) {
@@ -51,43 +55,32 @@ public class ReverseProxy extends AsyncProxyServlet {
     }
 
     protected String rewriteTarget(HttpServletRequest clientRequest) {
+        RequestInfo requestInfo = attachInfoForMonitoring(clientRequest);
+
         String uri = clientRequest.getRequestURI();
         String query = isEmpty(clientRequest.getQueryString()) ? "" : "?" + clientRequest.getQueryString();
 
-        log.debug(clientRequest.getMethod() + " " + uri);
+        requestInfo.url = clientRequest.getRequestURL().append(query).toString();
+
+        if (log.isDebugEnabled()) log.debug(clientRequest.getMethod() + " " + uri);
+
         if (uri.startsWith("/api/")) {
-            if (isAppCreationOrUpdatePost(clientRequest)) {
-                Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());
-                if (targetRunner.isPresent()) {
-                    URI targetAppRunner = targetRunner.get().url;
-                    return targetAppRunner.resolve(uri) + query;
-                } else {
-                    log.error("There are no app runner instances available! Add another instance or change the maxApps value of an existing one.");
-                    return null;
-                }
-            } else if (uri.equals("/api/v1/swagger.json") || uri.startsWith("/api/v1/system")) {
-                List<Runner> runners = cluster.getRunners();
-                if (runners.size() > 0) {
-                    return runners.get(0).url.resolve(uri).toString();
-                }
-            } else {
-                Matcher appMatcher = APP_API_REQUEST.matcher(uri);
-                if (appMatcher.matches()) {
-                    String appName = appMatcher.group(1);
-                    URI url = proxyMap.get(appName);
-                    if (url != null) {
-                        String newTarget = url.resolve(uri + query).toString();
-                        log.info("Proxying to " + newTarget);
-                        return newTarget;
-                    }
-                }
+            URI target = apiTargetUri(clientRequest, uri, query);
+            requestInfo.appName = "api";
+            if (target != null) {
+                String targetString = target.toString();
+                requestInfo.targetHost = target.getAuthority();
+                log.info("Proxying to " + targetString);
+                return targetString;
             }
         } else {
             Matcher appMatcher = APP_WEB_REQUEST.matcher(uri);
             if (appMatcher.matches()) {
                 String prefix = appMatcher.group(1);
+                requestInfo.appName = prefix;
                 URI url = proxyMap.get(prefix);
                 if (url != null) {
+                    requestInfo.targetHost = url.getAuthority();
                     String newTarget = url.toString() + appMatcher.group(2) + query;
                     log.info("Proxying to " + newTarget);
                     return newTarget;
@@ -97,6 +90,46 @@ public class ReverseProxy extends AsyncProxyServlet {
 
         log.info("No proxy target configured for " + uri);
         return null;
+    }
+
+    private URI apiTargetUri(HttpServletRequest clientRequest, String uri, String query) {
+        if (isAppCreationOrUpdatePost(clientRequest)) {
+            Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());
+            if (targetRunner.isPresent()) {
+                URI targetAppRunner = targetRunner.get().url;
+                return targetAppRunner.resolve(uri + query);
+            } else {
+                log.error("There are no app runner instances available! Add another instance or change the maxApps value of an existing one.");
+                return null;
+            }
+        } else if (uri.equals("/api/v1/swagger.json") || uri.startsWith("/api/v1/system")) {
+            List<Runner> runners = cluster.getRunners();
+            if (runners.size() > 0) {
+                return runners.get(0).url.resolve(uri);
+            }
+        } else {
+            Matcher appMatcher = APP_API_REQUEST.matcher(uri);
+            if (appMatcher.matches()) {
+                String appName = appMatcher.group(1);
+                URI url = proxyMap.get(appName);
+                if (url != null) {
+                    return url.resolve(uri + query);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static RequestInfo attachInfoForMonitoring(HttpServletRequest clientRequest) {
+        RequestInfo info = new RequestInfo();
+        info.startTime = System.currentTimeMillis();
+        info.remoteAddr = clientRequest.getRemoteAddr();
+        info.method = clientRequest.getMethod();
+        clientRequest.setAttribute("com.danielflower.apprunner.router.monitoring.RequestInfo", info);
+        return info;
+    }
+    static RequestInfo getInfo(HttpServletRequest request) {
+        return (RequestInfo) request.getAttribute("com.danielflower.apprunner.router.monitoring.RequestInfo");
     }
 
     @Override
@@ -124,6 +157,15 @@ public class ReverseProxy extends AsyncProxyServlet {
                 runner.refreshRunnerCountCache(proxyMap.getAll());
             });
         }
+    }
+
+    @Override
+    protected void onProxyResponseSuccess(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
+        super.onProxyResponseSuccess(clientRequest, proxyResponse, serverResponse);
+        RequestInfo info = getInfo(clientRequest);
+        info.endTime = System.currentTimeMillis();
+        info.responseStatus = serverResponse.getStatus();
+        if (appRequestListener != null) appRequestListener.onRequestComplete(info);
     }
 
     private static boolean isAppCreationOrUpdatePost(HttpServletRequest clientRequest) {

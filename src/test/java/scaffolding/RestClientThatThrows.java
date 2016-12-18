@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-public class RestClientThatThrows implements AutoCloseable {
+public class RestClientThatThrows {
     private static final Logger log = LoggerFactory.getLogger(RestClientThatThrows.class);
 
     private final RestClient underlying;
@@ -75,7 +75,4 @@ public class RestClientThatThrows implements AutoCloseable {
         return verify(underlying.deleteRunner(id));
     }
 
-    public void close() throws Exception {
-        underlying.close();
-    }
 }

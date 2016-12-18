@@ -67,27 +67,13 @@ public class RoutingTest {
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
         httpsClient = RestClient.create("https://" + host + ":" + routerHttpsPort);
-
-        clearApps(latestAppRunnerWithoutNode);
-        clearApps(oldAppRunner);
-    }
-
-    private void clearApps(AppRunnerInstance instance) throws Exception {
-        RestClient client = RestClient.create(instance.httpUrl().toString());
-        JSONObject apps = new JSONObject(client.get("/api/v1/apps").getContentAsString());
-        for (Object o : apps.getJSONArray("apps")) {
-            JSONObject app = (JSONObject) o;
-            client.deleteApp(app.getString("name"));
-        }
     }
 
     @After
     public void destroy() throws Exception {
-        try {
-            router.shutdown();
-        } finally {
-            httpClient.close();
-        }
+        latestAppRunnerWithoutNode.clearApps();
+        oldAppRunner.clearApps();
+        router.shutdown();
     }
 
     @AfterClass
@@ -165,7 +151,7 @@ public class RoutingTest {
         client.createApp(app2.gitUrl(), "app2");
         client.deploy("app2");
 
-        assertThat(client.get("/app2/"), equalTo(200, containsString("My Maven App")));
+        assertThat(client.get("/app2/?blah=aws&what=wat"), equalTo(200, containsString("My Maven App")));
 
         // the apps should be evenly distributed
         assertThat(numberOfApps(latestAppRunner), is(1));
@@ -195,12 +181,9 @@ public class RoutingTest {
     }
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {
-        int numberOfApps;
-        try (RestClient c = RestClient.create(appRunner.httpUrl().toString())) {
-            JSONObject apps = new JSONObject(c.get("/api/v1/apps").getContentAsString());
-            numberOfApps = apps.getJSONArray("apps").length();
-        }
-        return numberOfApps;
+        RestClient c = RestClient.create(appRunner.httpUrl().toString());
+        JSONObject apps = new JSONObject(c.get("/api/v1/apps").getContentAsString());
+        return apps.getJSONArray("apps").length();
     }
 
     @Test
@@ -250,10 +233,9 @@ public class RoutingTest {
     @Test
     public void appsAddedToAnInstanceBeforeItJoinsTheClusterAreAvailable() throws Exception {
         AppRepo app1 = AppRepo.create("maven");
-        try (RestClient direct = RestClient.create(latestAppRunnerWithoutNode.httpUrl().toString())) {
-            direct.createApp(app1.gitUrl(), "app1");
-            direct.deploy(app1.name);
-        }
+        RestClient direct = RestClient.create(latestAppRunnerWithoutNode.httpUrl().toString());
+        direct.createApp(app1.gitUrl(), "app1");
+        direct.deploy(app1.name);
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
         ContentResponse contentResponse = httpClient.get("/api/v1/apps/app1");
         assertThat(contentResponse.getStatus(), is(200));

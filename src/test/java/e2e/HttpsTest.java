@@ -74,7 +74,7 @@ public class HttpsTest {
             client.getAppRunners();
             Assert.fail("Should not have worked");
         } catch (ExecutionException e) {
-             // correct behaviour
+            // correct behaviour
         }
     }
 
@@ -86,17 +86,8 @@ public class HttpsTest {
 
     @After
     public void destroy() throws Exception {
-        try {
-            if (router != null) {
-                router.shutdown();
-            }
-        } finally {
-            if (httpClient != null) {
-                httpClient.close();
-            }
-            if (httpsClient != null) {
-                httpsClient.close();
-            }
+        if (router != null) {
+            router.shutdown();
         }
     }
 

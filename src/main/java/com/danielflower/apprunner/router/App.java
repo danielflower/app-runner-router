@@ -4,6 +4,8 @@ import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.ClusterQueryingMapManager;
 import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.SystemInfo;
+import com.danielflower.apprunner.router.monitoring.AppRequestListener;
+import com.danielflower.apprunner.router.monitoring.BlockingUdpSender;
 import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
@@ -82,8 +84,9 @@ public class App {
         String accessLogFilename = config.get("access.log.path", null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
+        AppRequestListener appRequestListener = getAppRequestListener();
         List<Object> localRestResources = asList(new RunnerResource(cluster), new SystemResource(systemInfo, cluster, httpClient));
-        webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances);
+        webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances, appRequestListener);
         webServer.start();
 
         if (sslContextFactory != null) {
@@ -95,6 +98,16 @@ public class App {
                 log.warn("The current java version (" + System.getProperty("java.home") + ") limits key length to " + maxKeyLen + " bits so modern browsers may have issues connecting. Install the JCE Unlimited Strength Jurisdiction Policy to allow high strength SSL connections.");
             }
         }
+    }
+
+    private AppRequestListener getAppRequestListener() {
+        String host = config.get("apprunner.udp.listener.host", null);
+        int port = config.getInt("apprunner.udp.listener.port", 0);
+        if (host == null || port < 1) {
+            return null;
+        }
+        log.info("Will publish request metrics over UDP to " + host + ":" + port);
+        return BlockingUdpSender.create(host, port);
     }
 
     public void shutdown() {
