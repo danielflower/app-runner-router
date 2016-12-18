@@ -36,7 +36,6 @@ public class RunLocal {
     private AppRunnerInstance appRunner1;
     private AppRunnerInstance appRunner2;
     private App router;
-    private RestClientThatThrows client;
 
     public static void main(String[] args) throws Exception {
         RunLocal runLocal = new RunLocal();
@@ -63,10 +62,13 @@ public class RunLocal {
         env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));
         env.put("apprunner.keystore.password", "password");
         env.put("apprunner.keymanager.password", "password");
+        env.put("apprunner.udp.listener.host", "localhost");
+        env.put("apprunner.udp.listener.port", "12888");
+
         router = new App(new Config(env));
         router.start();
         URI routerUri = new URI("https://localhost:" + routerPort);
-        client = new RestClientThatThrows(RestClient.create(routerUri.toString()));
+        RestClientThatThrows client = new RestClientThatThrows(RestClient.create(routerUri.toString()));
 
         registerRunner(client, appRunner1, 50);
         registerRunner(client, appRunner2, 50);
