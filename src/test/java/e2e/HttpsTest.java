@@ -22,8 +22,8 @@ public class HttpsTest {
     private final int httpPort = 20080;
     private final int httpsPort = 20443;
 
-    private final RestClient httpClient = RestClient.create("http://" + "localhost" + ":" + httpPort);
-    private final RestClient httpsClient = RestClient.create("https://" + "localhost" + ":" + httpsPort);
+    private final RestClient httpClient = RestClient.create("http://localhost:" + httpPort);
+    private final RestClient httpsClient = RestClient.create("https://localhost:" + httpsPort);
 
     @Test
     public void httpOnlyIsSupported() throws Exception {
