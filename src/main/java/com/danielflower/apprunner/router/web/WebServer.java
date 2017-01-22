@@ -7,6 +7,7 @@ import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -56,8 +57,9 @@ public class WebServer implements AutoCloseable {
         RouterHandlerList handlers = new RouterHandlerList();
         handlers.addHandler(new CoresHeadersAdderHandler());
         handlers.addHandler(createHomeRedirect());
-        handlers.addHandler(new AppsCallAggregator(mapManager, cluster));
-        handlers.addRestServiceHandler(createRestService());
+        handlers.addHandler(gzipped(new AppsCallAggregator(mapManager, cluster)));
+        handlers.addRestServiceHandler(gzipped(createRestService()));
+        handlers.addHandler(new FavIconHandler());
         handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener));
         jettyServer.setHandler(handlers);
         addAccessLog();
@@ -67,6 +69,12 @@ public class WebServer implements AutoCloseable {
             log.info("Endpoint: " + StringUtils.join(connector.toString().split("[{}]+"), " ", 1, 3));
         }
         log.info("Started web server");
+    }
+
+    private Handler gzipped(Handler handler) {
+        GzipHandler gzipHandler = new GzipHandler();
+        gzipHandler.setHandler(handler);
+        return gzipHandler;
     }
 
     private void addAccessLog() {
@@ -155,4 +163,5 @@ public class WebServer implements AutoCloseable {
         jettyServer.join();
         jettyServer.destroy();
     }
+
 }
