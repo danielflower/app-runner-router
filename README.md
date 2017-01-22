@@ -40,6 +40,7 @@ locally against your local router.
 
 ### Change log
 
+* **1.5.1** The REST API is now gzipped. Also added a favicon.
 * **1.5.0** Added optional publishing of request metrics over UDP.
 * **1.4.0** Changed the `runners` API to allow `PUT`ing changes to runner instances (and `POST`ing to an existing one returns a `409`)
 plus added `appCount` to the runners API.
