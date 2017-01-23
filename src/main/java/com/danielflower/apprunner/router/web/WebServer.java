@@ -27,7 +27,6 @@ import javax.ws.rs.container.ContainerResponseFilter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class WebServer implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
@@ -40,8 +39,10 @@ public class WebServer implements AutoCloseable {
     private final String accessLogFilename;
     private final boolean allowUntrustedInstances;
     private final AppRequestListener appRequestListener;
+    private final int idleTimeout;
+    private final int totalTimeout;
 
-    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances, AppRequestListener appRequestListener) {
+    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances, AppRequestListener appRequestListener, int idleTimeout, int totalTimeout) {
         this.jettyServer = jettyServer;
         this.cluster = cluster;
         this.mapManager = mapManager;
@@ -51,6 +52,8 @@ public class WebServer implements AutoCloseable {
         this.accessLogFilename = accessLogFilename;
         this.allowUntrustedInstances = allowUntrustedInstances;
         this.appRequestListener = appRequestListener;
+        this.idleTimeout = idleTimeout;
+        this.totalTimeout = totalTimeout;
     }
 
     public void start() throws Exception {
@@ -151,8 +154,9 @@ public class WebServer implements AutoCloseable {
         ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
-        proxyServletHolder.setInitParameter("maxThreads", "100");
-        proxyServletHolder.setInitParameter("timeout", String.valueOf(TimeUnit.MINUTES.toMillis(20)));
+        proxyServletHolder.setInitParameter("maxThreads", "256");
+        proxyServletHolder.setInitParameter("idleTimeout", String.valueOf(idleTimeout));
+        proxyServletHolder.setInitParameter("timeout", String.valueOf(totalTimeout));
         ServletHandler proxyHandler = new ServletHandler();
         proxyHandler.addServletWithMapping(proxyServletHolder, "/*");
         return proxyHandler;

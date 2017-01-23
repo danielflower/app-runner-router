@@ -1,11 +1,12 @@
 package samples;
 
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.handler.*;
 import org.eclipse.jetty.util.resource.Resource;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +30,22 @@ public class App {
         jettyServer.setStopAtShutdown(true);
 
         HandlerList handlers = new HandlerList();
-        // TODO: set your own handlers
+        handlers.addHandler(new AbstractHandler() {
+            @Override
+            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+                if (target.equalsIgnoreCase("/slow")) {
+                    try {
+                        Thread.sleep(Long.parseLong(request.getParameter("millis")));
+                    } catch (InterruptedException e) {
+                        Thread.interrupted();
+                    }
+                    try (PrintWriter writer = response.getWriter()) {
+                        writer.append("This was slow");
+                    }
+                    baseRequest.setHandled(true);
+                }
+            }
+        });
         handlers.addHandler(resourceHandler(isLocal));
 
         // you must serve everything from a directory named after your app

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.Matchers.is;
@@ -133,6 +134,23 @@ public class RoutingTest {
         httpsClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1);
         httpsClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpsUrl(), 1);
         appsCanBeAddedToTheRouterAndItWillDistributeThoseToTheRunners(httpsClient, latestAppRunnerWithoutNode, oldAppRunner);
+    }
+
+
+
+    @Test
+    public void slowRequestsTimeOut() throws Exception {
+        httpsClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1);
+        httpsClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpsUrl(), 1);
+        int waitTime = 35000;
+        for (String appName : asList("app1", "app2")) {
+            AppRepo app1 = AppRepo.create("maven");
+            httpsClient.createApp(app1.gitUrl(), appName);
+            httpsClient.deploy(appName);
+            Waiter.waitForApp(httpsClient.targetURI(), appName);
+            assertThat(httpsClient.get("/" + appName + "/slow?millis=" + waitTime).getStatus(), is(504));
+            httpsClient.stop(appName);
+        }
     }
 
     private static void appsCanBeAddedToTheRouterAndItWillDistributeThoseToTheRunners(RestClient client, AppRunnerInstance latestAppRunner, AppRunnerInstance oldAppRunner) throws Exception {
