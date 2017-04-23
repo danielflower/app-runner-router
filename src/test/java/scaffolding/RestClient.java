@@ -15,6 +15,7 @@ public class RestClient {
 
     static {
         HttpClient c = new HttpClient(new SslContextFactory(true));
+        c.setConnectTimeout(10000);
         try {
             c.start();
         } catch (Exception e) {

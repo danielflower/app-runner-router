@@ -30,27 +30,42 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public List<JSONObject> loadAllApps(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
-        List<JSONObject> results = new ArrayList<>();
+    public Result loadAllApps(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException {
+        Result result = new Result();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
         for (Runner runner : runners) {
             futures.add(executorService.submit(() -> loadRunner(clientRequest, runner)));
         }
         for (Future<JSONObject> future : futures) {
-            results.add(future.get(45, TimeUnit.SECONDS));
+            try {
+                JSONObject appJson = future.get();
+                result.appsJsonFromEachRunner.add(appJson);
+            } catch (InterruptedException e) {
+                throw e;
+            } catch (Exception e) {
+                Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
+                log.error(cause.getMessage());
+                result.errors.add(cause.getMessage());
+            }
         }
-        log.info("Got " + results.size() + " results");
-        return results;
+        log.info("Got " + result.appsJsonFromEachRunner.size() + " results");
+        return result;
     }
 
     @Override
     public JSONObject loadRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/apps");
         Request request = httpClient.newRequest(uri)
+            .timeout(10, TimeUnit.SECONDS)
             .method(HttpMethod.GET);
         forwardedHeadersAdder.addHeaders(clientRequest, request);
-        ContentResponse resp = request.send();
+        ContentResponse resp;
+        try {
+            resp = request.send();
+        } catch (TimeoutException e) {
+            throw new TimeoutException("Timed out calling " + uri);
+        }
         if (resp.getStatus() != 200) {
             throw new RuntimeException("Unable to load apps from " + uri + " - message was " + resp.getContentAsString());
         }

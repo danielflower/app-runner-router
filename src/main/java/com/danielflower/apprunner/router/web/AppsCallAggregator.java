@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 class AppsCallAggregator extends AbstractHandler {
     private static final Logger log = LoggerFactory.getLogger(AppsCallAggregator.class);
@@ -31,11 +30,11 @@ class AppsCallAggregator extends AbstractHandler {
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         if (canHandle(target, request)) {
             try {
-                List<JSONObject> results = mapManager.loadAllApps(request, cluster.getRunners());
+                MapManager.Result results = mapManager.loadAllApps(request, cluster.getRunners());
                 JSONObject all = new JSONObject();
                 List<JSONObject> unsorted = new ArrayList<>();
 
-                for (JSONObject result : results) {
+                for (JSONObject result : results.appsJsonFromEachRunner) {
                     JSONArray singleApps = result.getJSONArray("apps");
                     for (Object singleApp : singleApps) {
                         unsorted.add((JSONObject) singleApp);
@@ -49,11 +48,15 @@ class AppsCallAggregator extends AbstractHandler {
                 all.put("appCount", apps.length());
                 all.put("apps", apps);
 
+                JSONArray errors = new JSONArray();
+                for (String error : results.errors) {
+                    errors.put(error);
+                }
+                all.put("errors", errors);
+
                 response.setStatus(200);
                 response.setHeader("Content-Type", "application/json");
                 response.getWriter().append(all.toString(4)).close();
-            } catch (TimeoutException te) {
-                response.sendError(504, "Timed out calling all the app runner instances with message " + te.getMessage());
             } catch (Exception e) {
                 log.error("Error while aggregating the " + target + " call", e);
                 response.sendError(502, "Error while aggregating the calls.");

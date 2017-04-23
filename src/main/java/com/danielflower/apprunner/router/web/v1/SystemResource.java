@@ -66,15 +66,32 @@ public class SystemResource {
     private JSONObject loadSystemInfoForRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/system");
         Request req = httpClient.newRequest(uri)
+            .timeout(5, TimeUnit.SECONDS)
             .method(HttpMethod.GET);
         forwardedHeadersAdder.addHeaders(clientRequest, req);
-        ContentResponse resp = req.send();
-        if (resp.getStatus() != 200) {
-            throw new RuntimeException("Unable to load system from " + uri + " - message was " + resp.getContentAsString());
-        }
         JSONObject runnerJson = runner.toJSON();
-        runnerJson.put("system", new JSONObject(resp.getContentAsString()));
+        try {
+            ContentResponse resp = req.send();
+            if (resp.getStatus() == 200) {
+                runnerJson.put("system", new JSONObject(resp.getContentAsString()));
+            } else {
+                runnerJson.put("system", erroredSystemJson())
+                    .put("error", "Unable to load system from " + uri + " - message was " + resp.getContentAsString());
+            }
+        } catch (InterruptedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Error looking up system info for " + uri + " - " + e.getMessage());
+            runnerJson.put("system", erroredSystemJson())
+                .put("error", "ERROR: " + e.getMessage());
+        }
         return runnerJson;
+    }
+
+    private JSONObject erroredSystemJson() {
+        return new JSONObject()
+            .put("appRunnerStarted", false)
+            .put("samples", new JSONArray());
     }
 
     @GET
@@ -89,7 +106,7 @@ public class SystemResource {
         result.put("os", os);
         os.put("osName", systemInfo.osName);
         os.put("numCpus", systemInfo.numCpus);
-        os.put("uptimeInSeconds", systemInfo.uptimeInMillis()  / 1000L);
+        os.put("uptimeInSeconds", systemInfo.uptimeInMillis() / 1000L);
         os.put("appRunnerPid", systemInfo.pid);
 
         List<JSONObject> runners;
@@ -115,7 +132,7 @@ public class SystemResource {
             if (system.has("publicKeys")) {
                 JSONArray keys = system.getJSONArray("publicKeys");
                 for (Object keyObj : keys) {
-                    String key = (String)keyObj;
+                    String key = (String) keyObj;
                     if (added.add(key)) {
                         aggregatedKeys.put(key);
                     }
@@ -135,7 +152,7 @@ public class SystemResource {
             allStarted = allStarted && system.getBoolean("appRunnerStarted");
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
-                JSONObject sample = (JSONObject)sampleObj;
+                JSONObject sample = (JSONObject) sampleObj;
                 String id = getSampleID(sample);
                 if (!addedSamples.contains(id)) {
                     apps.put(sample);
@@ -167,7 +184,7 @@ public class SystemResource {
             JSONObject system = runner.getJSONObject("system");
             JSONArray samples = system.getJSONArray("samples");
             for (Object sampleObj : samples) {
-                JSONObject sample = (JSONObject)sampleObj;
+                JSONObject sample = (JSONObject) sampleObj;
                 String id = getSampleID(sample);
                 names.add(id);
                 if ((id + ".zip").equalsIgnoreCase(name)) {
