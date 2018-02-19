@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +34,7 @@ public class Cluster {
         ArrayList<Runner> runners = new ArrayList<>();
         boolean isNew = !config.exists();
         if (config.exists()) {
-            JSONObject json = new JSONObject(FileUtils.readFileToString(config));
+            JSONObject json = new JSONObject(FileUtils.readFileToString(config, StandardCharsets.UTF_8));
             for (Object o : json.getJSONArray("runners")) {
                 runners.add(Runner.fromJSON((JSONObject) o));
             }
@@ -57,6 +58,7 @@ public class Cluster {
             runners.add(runner);
         }
         querier.loadRunner(clientRequest, runner);
+        refreshRunnerCountCache(querier.getCurrentMapping());
         save();
     }
 

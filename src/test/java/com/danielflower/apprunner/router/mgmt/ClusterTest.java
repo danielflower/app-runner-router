@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
@@ -29,7 +30,7 @@ public class ClusterTest {
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
     private HttpServletRequest clientRequest = context.mock(HttpServletRequest.class);
 
-    public ClusterTest() throws IOException, InterruptedException {
+    public ClusterTest() throws IOException {
     }
 
     @Before
@@ -37,6 +38,7 @@ public class ClusterTest {
         context.checking(new Expectations() {{
             allowing(mapManager).loadRunner(with(any(HttpServletRequest.class)), with(any(Runner.class)));
             allowing(mapManager).removeRunner(with(instanceOne));
+            allowing(mapManager).getCurrentMapping();will(returnValue(new ConcurrentHashMap<String, URI>()));
         }});
     }
 

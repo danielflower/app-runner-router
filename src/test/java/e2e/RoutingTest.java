@@ -29,6 +29,7 @@ import static com.danielflower.apprunner.router.Config.dirPath;
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
@@ -175,6 +176,13 @@ public class RoutingTest {
         assertThat(numberOfApps(latestAppRunner), is(1));
         assertThat(numberOfApps(oldAppRunner), is(1));
 
+        // a runner can be deleted and added back and the number reported is accurate
+        JSONObject savedInfo = new JSONObject(client.getRunner(latestAppRunner.id()).getContentAsString());
+        client.deleteRunner(latestAppRunner.id());
+        client.registerRunner(latestAppRunner.id(), URI.create(savedInfo.getString("url")), savedInfo.getInt("maxApps"));
+        assertThat(numberOfApps(latestAppRunner), is(1));
+
+
         // querying for all the apps returns a combined list
         ContentResponse appsResponse = client.get("/api/v1/apps");
         JSONAssert.assertEquals("{ " +
@@ -237,7 +245,7 @@ public class RoutingTest {
 
         // Can't PUT to a non-existent runner
         assertThat(httpClient.updateRunner("non-existent-runner-id", latestAppRunnerWithoutNode.httpUrl(), 50),
-            equalTo(404, Matchers.equalTo("No runner with the ID non-existent-runner-id exists")));
+            equalTo(404, equalTo("No runner with the ID non-existent-runner-id exists")));
 
         // Can update a runner
         assertThat(httpClient.updateRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100),
@@ -275,7 +283,9 @@ public class RoutingTest {
 
         Waiter waiter = Waiter.waitForApp(httpClient.targetURI(), "my-app");
         waiter.blockUntilReady();
+
         assertThat(httpClient.get("/my-app/"), equalTo(200, containsString("My Maven App")));
+        assertThat(numberOfApps(latestAppRunnerWithoutNode), equalTo(1));
 
         httpClient.stop("my-app");
     }

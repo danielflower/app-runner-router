@@ -6,6 +6,8 @@ import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import com.danielflower.apprunner.router.monitoring.RequestInfo;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpHeaderValue;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
@@ -13,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -193,12 +194,19 @@ public class ReverseProxy extends AsyncProxyServlet {
             status = 404;
             message = "404 Not Found";
         }
-        sendProxyResponseError(clientRequest, proxyResponse, status);
         try {
-            proxyResponse.getWriter().write(message);
-        } catch (IOException e) {
-            log.info("Could not write error", e);
+            if (!proxyResponse.isCommitted()) {
+                proxyResponse.resetBuffer();
+                proxyResponse.setHeader(HttpHeader.CONNECTION.asString(), HttpHeaderValue.CLOSE.asString());
+            }
+            proxyResponse.sendError(status, message);
+        } catch(Exception e) {
+            _log.ignore(e);
+        } finally {
+            if (clientRequest.isAsyncStarted())
+                clientRequest.getAsyncContext().complete();
         }
+
     }
 
     @Override

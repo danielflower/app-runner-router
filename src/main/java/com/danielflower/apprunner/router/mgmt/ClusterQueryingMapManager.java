@@ -30,6 +30,11 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
+    public ConcurrentHashMap<String, URI> getCurrentMapping() {
+        return proxyMap.getAll();
+    }
+
+    @Override
     public Result loadAllApps(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException {
         Result result = new Result();
         log.info("Looking up app info from " + runners);
