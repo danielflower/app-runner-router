@@ -10,7 +10,11 @@ import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
+import org.conscrypt.OpenSSLProvider;
+import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.http2.HTTP2Cipher;
+import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
@@ -18,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import java.io.File;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,12 +64,23 @@ public class App {
         int httpsPort = config.getInt(Config.SERVER_HTTPS_PORT, -1);
         SslContextFactory sslContextFactory = null;
         if (httpsPort > -1) {
+            Security.addProvider(new OpenSSLProvider());
+
             sslContextFactory = new SslContextFactory();
+            sslContextFactory.setProvider("Conscrypt");
             sslContextFactory.setKeyStorePath(dirPath(config.getFile("apprunner.keystore.path")));
             sslContextFactory.setKeyStorePassword(config.get("apprunner.keystore.password"));
             sslContextFactory.setKeyManagerPassword(config.get("apprunner.keymanager.password"));
             sslContextFactory.setKeyStoreType(config.get("apprunner.keystore.type", "JKS"));
-            ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory, new HttpConnectionFactory(httpConfig));
+            sslContextFactory.setCipherComparator(HTTP2Cipher.COMPARATOR);
+
+            HTTP2ServerConnectionFactory h2 = new HTTP2ServerConnectionFactory(httpConfig);
+            ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
+            alpn.setDefaultProtocol("http/1.1");
+
+            SslConnectionFactory ssl = new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
+
+            ServerConnector httpConnector = new ServerConnector(jettyServer, ssl, alpn, h2, new HttpConnectionFactory(httpConfig));
 
             httpConnector.setPort(httpsPort);
             serverConnectorList.add(httpConnector);

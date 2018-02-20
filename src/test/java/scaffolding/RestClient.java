@@ -2,6 +2,7 @@ package scaffolding;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
 import org.eclipse.jetty.client.util.FormContentProvider;
 import org.eclipse.jetty.util.Fields;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -11,29 +12,33 @@ import java.net.URLEncoder;
 
 public class RestClient {
 
-    public static final HttpClient client;
+    public static final HttpClient http1Client;
+    public final HttpClient client;
 
     static {
-        HttpClient c = new HttpClient(new SslContextFactory(true));
-        c.setConnectTimeout(10000);
         try {
+            HttpClient c = new HttpClient(new HttpClientTransportOverHTTP(), new SslContextFactory(true));
+            c.setConnectTimeout(10000);
             c.start();
+            http1Client = c;
         } catch (Exception e) {
             throw new RuntimeException("Unable to make client", e);
         }
-        client = c;
+
+
     }
 
     public static RestClient create(String appRunnerUrl) {
         if (appRunnerUrl.endsWith("/")) {
             appRunnerUrl = appRunnerUrl.substring(0, appRunnerUrl.length() - 1);
         }
-        return new RestClient(appRunnerUrl);
+        return new RestClient(http1Client, appRunnerUrl);
     }
 
     public final String routerUrl;
 
-    private RestClient(String routerUrl) {
+    private RestClient(HttpClient client, String routerUrl) {
+        this.client = client;
         this.routerUrl = routerUrl;
     }
 

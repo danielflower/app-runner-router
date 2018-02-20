@@ -5,9 +5,12 @@ import com.danielflower.apprunner.router.mgmt.Runner;
 import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import com.danielflower.apprunner.router.monitoring.RequestInfo;
 import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.client.http.HttpClientTransportOverHTTP;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpHeaderValue;
+import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.proxy.AsyncProxyServlet;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
@@ -39,6 +42,13 @@ public class ReverseProxy extends AsyncProxyServlet {
         this.proxyMap = proxyMap;
         this.allowUntrustedInstances = allowUntrustedInstances;
         this.appRequestListener = appRequestListener;
+    }
+
+    @Override
+    protected void copyRequestHeaders(HttpServletRequest clientRequest, Request proxyRequest) {
+        HttpVersion clientProtocolVersion = HttpVersion.fromString(clientRequest.getProtocol()); // don't make requests with HTTP2 to the instances
+        proxyRequest.version(clientProtocolVersion == HttpVersion.HTTP_2 ? HttpVersion.HTTP_1_1 : clientProtocolVersion);
+        super.copyRequestHeaders(clientRequest, proxyRequest);
     }
 
     protected String filterServerResponseHeader(HttpServletRequest clientRequest, Response serverResponse, String headerName, String headerValue) {
@@ -164,9 +174,11 @@ public class ReverseProxy extends AsyncProxyServlet {
     protected void onProxyResponseSuccess(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onProxyResponseSuccess(clientRequest, proxyResponse, serverResponse);
         RequestInfo info = getInfo(clientRequest);
-        info.endTime = System.currentTimeMillis();
-        info.responseStatus = serverResponse.getStatus();
-        if (appRequestListener != null) appRequestListener.onRequestComplete(info);
+        if (info != null) {
+            info.endTime = System.currentTimeMillis();
+            info.responseStatus = serverResponse.getStatus();
+            if (appRequestListener != null) appRequestListener.onRequestComplete(info);
+        }
     }
 
     private static boolean isAppCreationOrUpdatePost(HttpServletRequest clientRequest) {
@@ -211,6 +223,6 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     @Override
     protected HttpClient newHttpClient() {
-        return new HttpClient(new SslContextFactory(allowUntrustedInstances));
+        return new HttpClient(new HttpClientTransportOverHTTP(), new SslContextFactory(allowUntrustedInstances));
     }
 }
