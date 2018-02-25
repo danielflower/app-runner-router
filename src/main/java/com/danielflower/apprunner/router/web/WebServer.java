@@ -11,7 +11,6 @@ import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -97,7 +96,6 @@ public class WebServer implements AutoCloseable {
     private Handler createRestService() {
         ResourceConfig rc = new ResourceConfig();
         localRestResources.forEach(rc::register);
-        rc.register(JacksonFeature.class);
         rc.register(CORSFilter.class);
         rc.addProperties(new HashMap<String,Object>() {{
             // Turn off buffering so results can be streamed

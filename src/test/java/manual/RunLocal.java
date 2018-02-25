@@ -41,7 +41,7 @@ public class RunLocal {
         RunLocal runLocal = new RunLocal();
         Runtime.getRuntime().addShutdownHook(new Thread(runLocal::stop));
         try {
-            runLocal.start();
+            runLocal.start(true);
         } catch (Exception e) {
             log.error("Error during startup", e);
             runLocal.stop();
@@ -49,11 +49,13 @@ public class RunLocal {
         }
     }
 
-    private void start() throws Exception {
-        AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
-        instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
-        appRunner1 = instanceWithoutNode.start();
-        appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
+    private void start(boolean addRunners) throws Exception {
+        if (addRunners) {
+            AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
+            instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
+            appRunner1 = instanceWithoutNode.start();
+            appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
+        }
 
         int routerPort = 8443;
         Map<String, String> env = new HashMap<>(System.getenv());
@@ -64,16 +66,18 @@ public class RunLocal {
         env.put("apprunner.keymanager.password", "password");
         env.put("apprunner.udp.listener.host", "localhost");
         env.put("apprunner.udp.listener.port", "12888");
+        env.put("appserver.default.app.name", "app-runner-home");
 
         router = new App(new Config(env));
         router.start();
         URI routerUri = new URI("https://localhost:" + routerPort);
         RestClientThatThrows client = new RestClientThatThrows(RestClient.create(routerUri.toString()));
 
-        registerRunner(client, appRunner1, 50);
-        registerRunner(client, appRunner2, 50);
-
-        setupSampleApps(client);
+        if (addRunners) {
+            registerRunner(client, appRunner1, 50);
+            registerRunner(client, appRunner2, 50);
+            setupSampleApps(client);
+        }
 
         log.info("*********** Ready to go at " + routerUri + " ***************");
         if (Desktop.isDesktopSupported()) {
@@ -82,6 +86,13 @@ public class RunLocal {
     }
 
     private static void setupSampleApps(RestClientThatThrows client) throws Exception {
+        try {
+            client.createApp("https://github.com/danielflower/app-runner-home.git", "app-runner-home");
+            client.deploy("app-runner-home");
+        } catch (Exception e) {
+            log.error("Error while setting up home, so there will be no dashboard", e);
+        }
+
         File repoRoot = new File("target/local/repos/" + System.currentTimeMillis());
         log.info("Creating git repos for apps at " + dirPath(repoRoot));
         FileUtils.forceMkdir(repoRoot);
@@ -124,7 +135,7 @@ public class RunLocal {
                 } else {
                     entryDestination.getParentFile().mkdirs();
                     try (InputStream in = zipFile.getInputStream(entry);
-                    OutputStream out = new FileOutputStream(entryDestination)) {
+                         OutputStream out = new FileOutputStream(entryDestination)) {
                         IOUtils.copy(in, out);
                     }
                 }

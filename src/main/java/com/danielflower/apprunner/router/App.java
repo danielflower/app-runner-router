@@ -10,6 +10,7 @@ import com.danielflower.apprunner.router.web.ProxyMap;
 import com.danielflower.apprunner.router.web.WebServer;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
+import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Cipher;
 import java.io.File;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,6 +29,9 @@ import static java.util.Arrays.asList;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
+    static {
+        Security.addProvider(new OpenSSLProvider());
+    }
 
     private final Config config;
     private WebServer webServer;
@@ -64,6 +69,7 @@ public class App {
             sslContextFactory.setKeyStorePassword(config.get("apprunner.keystore.password"));
             sslContextFactory.setKeyManagerPassword(config.get("apprunner.keymanager.password"));
             sslContextFactory.setKeyStoreType(config.get("apprunner.keystore.type", "JKS"));
+            sslContextFactory.setProvider("Conscrypt");
             ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory, new HttpConnectionFactory(httpConfig));
 
             httpConnector.setPort(httpsPort);

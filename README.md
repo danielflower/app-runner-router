@@ -40,7 +40,8 @@ locally against your local router.
 
 ### Change log
 
-* **1.6.0** If some app runner instances are unavailable, the /apps and /system calls will still return and will include details about the errors.
+* **1.7.x** These versions contain experimental HTTP2 support. Not recommended for production.
+* **1.6.1** If some app runner instances are unavailable, the /apps and /system calls will still return and will include details about the errors.
 * **1.5.2** Added optional config for handling proxy timeouts: `apprunner.proxy.idle.timeout` (default 30000ms) `apprunner.proxy.total.timeout` (default 20 mins).
 * **1.5.1** The REST API is now gzipped. Also added a favicon.
 * **1.5.0** Added optional publishing of request metrics over UDP.
