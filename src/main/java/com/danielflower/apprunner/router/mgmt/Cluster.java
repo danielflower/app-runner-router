@@ -11,9 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -87,7 +85,7 @@ public class Cluster {
             .findFirst();
     }
 
-    public synchronized Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping) {
+    public synchronized Optional<Runner> allocateRunner(ConcurrentHashMap<String, URI> currentMapping, Collection<String> excludedRunnerIDs) {
         refreshRunnerCountCache(currentMapping);
         Runner leastContended = null;
         for (Runner runner : runners) {
@@ -95,7 +93,12 @@ public class Cluster {
                 continue;
             }
             if (leastContended == null || leastContended.numberOfApps() > runner.numberOfApps()) {
-                leastContended = runner;
+                boolean isBanned = excludedRunnerIDs.contains(runner.id);
+                if (isBanned) {
+                    log.info("Not allocating to " + runner.id + " because it was requested to be excluded.");
+                } else {
+                    leastContended = runner;
+                }
             }
         }
         if (leastContended != null) {

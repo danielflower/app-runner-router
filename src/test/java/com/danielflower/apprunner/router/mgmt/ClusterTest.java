@@ -11,9 +11,12 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -29,6 +32,7 @@ public class ClusterTest {
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
     private HttpServletRequest clientRequest = context.mock(HttpServletRequest.class);
+    private Collection<String> excludeNone = emptyList();
 
     public ClusterTest() throws IOException {
     }
@@ -67,7 +71,7 @@ public class ClusterTest {
         ProxyMap proxyMap = new ProxyMap();
 
         // no runners, so no allocation
-        assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
+        assertThat(cluster.allocateRunner(proxyMap.getAll(), excludeNone), equalTo(Optional.empty()));
 
         // Add two runners to the cluster
         cluster.addRunner(clientRequest, instanceOne);
@@ -76,8 +80,11 @@ public class ClusterTest {
         // Add an app to runner 1
         proxyMap.add("blah", instanceOne.url.resolve("/blah/"));
 
-        // When allocating, runner 2 should be allocated
-        assertThat(cluster.allocateRunner(proxyMap.getAll()).get(), is(instanceTwo));
+        // If we exclude runner 2, then it won't be picked even though it has greater capacity
+        assertThat(cluster.allocateRunner(proxyMap.getAll(), singletonList(instanceTwo.id)).get(), is(instanceOne));
+
+        // When allocating without exclusion, runner 2 should be allocated
+        assertThat(cluster.allocateRunner(proxyMap.getAll(), excludeNone).get(), is(instanceTwo));
     }
 
     @Test
@@ -87,10 +94,10 @@ public class ClusterTest {
         cluster.addRunner(clientRequest, new Runner("one", URI.create("http://localhost:8081"), 1));
         cluster.addRunner(clientRequest, new Runner("two", URI.create("http://localhost:8082"), 2));
 
-        proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah"));
-        proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah2"));
-        proxyMap.add("blah3", cluster.allocateRunner(proxyMap.getAll()).get().url.resolve("/blah3"));
-        assertThat(cluster.allocateRunner(proxyMap.getAll()), equalTo(Optional.empty()));
+        proxyMap.add("blah", cluster.allocateRunner(proxyMap.getAll(), excludeNone).get().url.resolve("/blah"));
+        proxyMap.add("blah2", cluster.allocateRunner(proxyMap.getAll(), excludeNone).get().url.resolve("/blah2"));
+        proxyMap.add("blah3", cluster.allocateRunner(proxyMap.getAll(), excludeNone).get().url.resolve("/blah3"));
+        assertThat(cluster.allocateRunner(proxyMap.getAll(), excludeNone), equalTo(Optional.empty()));
     }
 
 }

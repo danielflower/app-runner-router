@@ -80,6 +80,7 @@ public class App {
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAllApps(null, cluster.getRunners());
+        cluster.refreshRunnerCountCache(mapManager.getCurrentMapping());
 
         String accessLogFilename = config.get("access.log.path", null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);

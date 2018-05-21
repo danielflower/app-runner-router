@@ -16,8 +16,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -95,7 +94,8 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     private URI apiTargetUri(HttpServletRequest clientRequest, String uri, String query) {
         if (isAppCreationOrUpdatePost(clientRequest)) {
-            Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll());
+            List<String> excludedRunnerIDs = Collections.list(clientRequest.getHeaders("X-Excluded-Runner"));
+            Optional<Runner> targetRunner = cluster.allocateRunner(proxyMap.getAll(), excludedRunnerIDs);
             if (targetRunner.isPresent()) {
                 URI targetAppRunner = targetRunner.get().url;
                 return targetAppRunner.resolve(uri + query);
