@@ -35,6 +35,7 @@ public class RunLocal {
 
     private AppRunnerInstance appRunner1;
     private AppRunnerInstance appRunner2;
+    private AppRunnerInstance appRunner3;
     private App router;
 
     public static void main(String[] args) throws Exception {
@@ -54,6 +55,7 @@ public class RunLocal {
         instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
         appRunner1 = instanceWithoutNode.start();
         appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
+        appRunner3 = AppRunnerInstance.latest("app-runner-3").start();
 
         int routerPort = 8443;
         Map<String, String> env = new HashMap<>(System.getenv());
@@ -72,6 +74,7 @@ public class RunLocal {
 
         registerRunner(client, appRunner1, 50);
         registerRunner(client, appRunner2, 50);
+        registerRunner(client, appRunner3, 50);
 
         setupSampleApps(client);
 
