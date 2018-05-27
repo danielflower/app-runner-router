@@ -28,7 +28,7 @@ public class RestClient {
         if (appRunnerUrl.endsWith("/")) {
             appRunnerUrl = appRunnerUrl.substring(0, appRunnerUrl.length() - 1);
         }
-        return new RestClient(appRunnerUrl);
+        return new RestClient(appRunnerUrl.toLowerCase());
     }
 
     public final String routerUrl;
