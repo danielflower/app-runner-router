@@ -61,8 +61,8 @@ public class RunnerResource {
         if (isBlank(url)) {
             return Response.status(400).entity("No runner URL was specified").build();
         }
-        if (maxApps < 1) {
-            return Response.status(400).entity("The max apps value must be at least 1").build();
+        if (maxApps < 0) {
+            return Response.status(400).entity("The max apps value must be at least 0").build();
         }
 
         try {
