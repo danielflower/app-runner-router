@@ -272,6 +272,19 @@ public class RoutingTest {
     }
 
     @Test
+    public void theRunnerAppsAPIGivesTheAppsOfARunner() throws Exception {
+        httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
+        AppRepo app1 = AppRepo.create("maven");
+        httpClient.createApp(app1.gitUrl(), "my-app");
+
+        ContentResponse resp = httpClient.getRunnerApps(latestAppRunnerWithoutNode.id());
+        assertThat(resp.getStatus(), is(200));
+        assertThat(resp.getHeaders().get("Content-Type"), equalTo("application/json"));
+        JSONObject appJson = new JSONObject(resp.getContentAsString());
+        assertThat(appJson.getJSONArray("apps").length(), is(1));
+    }
+
+    @Test
     public void onStartupTheAppsOfRunnersAreRemembered() throws Exception {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
         AppRepo app1 = AppRepo.create("maven");
