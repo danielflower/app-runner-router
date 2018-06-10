@@ -1,7 +1,9 @@
 package com.danielflower.apprunner.router.web.v1;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,9 +26,11 @@ public class RunnerResource {
     public static final Logger log = LoggerFactory.getLogger(RunnerResource.class);
 
     private final Cluster cluster;
+    private final MapManager mapManager;
 
-    public RunnerResource(Cluster cluster) {
+    public RunnerResource(Cluster cluster, MapManager mapManager) {
         this.cluster = cluster;
+        this.mapManager = mapManager;
     }
 
     @GET
@@ -46,6 +50,24 @@ public class RunnerResource {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
+
+    @GET
+    @Path("/{id}/apps")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getRunnerApps(@Context HttpServletRequest clientRequest, @PathParam("id") String id) {
+        Optional<Runner> app = cluster.runner(id);
+        if (!app.isPresent()) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        try {
+            JSONObject appsJSON = mapManager.loadRunner(clientRequest, app.get());
+            return Response.ok(appsJSON.toString(4)).build();
+        } catch (Exception e) {
+            log.error("Error while getting apps for " + id, e);
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+    }
+
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)

@@ -117,6 +117,10 @@ public class RestClient {
         return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));
     }
 
+    public ContentResponse getRunnerApps(String id) throws Exception {
+        return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8") + "/apps");
+    }
+
     public ContentResponse deleteRunner(String id) throws Exception {
         return client.newRequest(routerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
     }

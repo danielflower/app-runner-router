@@ -86,7 +86,7 @@ public class App {
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
         AppRequestListener appRequestListener = getAppRequestListener();
-        List<Object> localRestResources = asList(new RunnerResource(cluster), new SystemResource(systemInfo, cluster, httpClient));
+        List<Object> localRestResources = asList(new RunnerResource(cluster, mapManager), new SystemResource(systemInfo, cluster, httpClient));
         webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances, appRequestListener,
             config.getInt("apprunner.proxy.idle.timeout", 30000), config.getInt("apprunner.proxy.total.timeout", 20*60000));
         webServer.start();
