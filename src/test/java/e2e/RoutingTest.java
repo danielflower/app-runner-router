@@ -110,6 +110,40 @@ public class RoutingTest {
     }
 
     @Test
+    public void proxyHeadersAreForwardedCorrectlyToTheApp() throws Exception {
+        httpsClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
+        httpsClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 1);
+
+        AppRepo app1 = AppRepo.create("maven");
+        AppRepo app2 = AppRepo.create("maven");
+
+        httpsClient.createApp(app1.gitUrl(), "app1");
+        httpsClient.deploy("app1");
+        Waiter.waitForApp(httpsClient.targetURI(), "app1");
+
+        String headersFromOne = httpsClient.get("/app1/headers").getContentAsString();
+
+        httpsClient.createApp(app2.gitUrl(), "app2");
+        httpsClient.deploy("app2");
+        Waiter.waitForApp(httpsClient.targetURI(), "app2");
+
+        String headersFromTwo = httpsClient.get("/app2/headers").getContentAsString();
+
+        System.out.println();
+        System.out.println("headersFromOne = " + headersFromOne);
+        System.out.println();
+        System.out.println("headersFromTwo = " + headersFromTwo);
+        System.out.println();
+
+        assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
+        assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
+
+        httpsClient.stop("app1");
+        httpsClient.stop("app2");
+
+    }
+
+    @Test
     public void appsCanBeAddedToTheRouterAndItWillDistributeThoseToTheRunnersWithAnHTTPRouterAndHTTPInstances() throws Exception {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
         httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 1);

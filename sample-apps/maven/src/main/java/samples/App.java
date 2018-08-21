@@ -3,18 +3,22 @@ package samples;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.*;
 import org.eclipse.jetty.util.resource.Resource;
+
 import javax.servlet.*;
 import javax.servlet.http.*;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Enumeration;
 import java.util.Map;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
+
     public static void main(String[] args) throws Exception {
         Map<String, String> settings = System.getenv();
 
@@ -41,6 +45,27 @@ public class App {
                     }
                     try (PrintWriter writer = response.getWriter()) {
                         writer.append("This was slow");
+                    }
+                    baseRequest.setHandled(true);
+                }
+            }
+        });
+        handlers.addHandler(new AbstractHandler() {
+            @Override
+            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+                if (target.equals("/headers")) {
+                    response.setContentType("text/plain");
+                    try (PrintWriter writer = response.getWriter()) {
+                        Enumeration<String> headerNames = request.getHeaderNames();
+                        while (headerNames.hasMoreElements()) {
+                            String name = headerNames.nextElement();
+                            Enumeration<String> values = request.getHeaders(name);
+                            while (values.hasMoreElements()) {
+                                String value = values.nextElement();
+                                writer.append(name).append(":").append(value).append("\r\n");
+                            }
+                        }
+
                     }
                     baseRequest.setHandled(true);
                 }
@@ -74,7 +99,7 @@ public class App {
             resourceHandler.setBaseResource(Resource.newClassPathResource("/web", true, false));
         }
         resourceHandler.setEtags(true);
-        resourceHandler.setWelcomeFiles(new String[] {"index.html"});
+        resourceHandler.setWelcomeFiles(new String[]{"index.html"});
         return resourceHandler;
     }
 
