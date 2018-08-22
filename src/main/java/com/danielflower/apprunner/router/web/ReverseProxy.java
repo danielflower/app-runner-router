@@ -27,6 +27,7 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     private static final Pattern APP_WEB_REQUEST = Pattern.compile("/([^/?]+)(.*)");
     private static final Pattern APP_API_REQUEST = Pattern.compile("/api/v1/apps/([^/?]+)(.*)");
+    public static final String REQUEST_INFO_NAME = "com.danielflower.apprunner.router.monitoring.RequestInfo";
 
     private final ProxyMap proxyMap;
     private final Cluster cluster;
@@ -126,11 +127,11 @@ public class ReverseProxy extends AsyncProxyServlet {
         info.startTime = System.currentTimeMillis();
         info.remoteAddr = clientRequest.getRemoteAddr();
         info.method = clientRequest.getMethod();
-        clientRequest.setAttribute("com.danielflower.apprunner.router.monitoring.RequestInfo", info);
+        clientRequest.setAttribute(REQUEST_INFO_NAME, info);
         return info;
     }
     static RequestInfo getInfo(HttpServletRequest request) {
-        return (RequestInfo) request.getAttribute("com.danielflower.apprunner.router.monitoring.RequestInfo");
+        return (RequestInfo) request.getAttribute(REQUEST_INFO_NAME);
     }
 
     @Override
