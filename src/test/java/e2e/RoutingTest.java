@@ -137,6 +137,8 @@ public class RoutingTest {
 
         assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
         assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
+        assertThat(headersFromOne, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
+        assertThat(headersFromTwo, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
 
         httpsClient.stop("app1");
         httpsClient.stop("app2");

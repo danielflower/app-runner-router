@@ -154,6 +154,7 @@ public class WebServer implements AutoCloseable {
         ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener);
         ServletHolder proxyServletHolder = new ServletHolder(servlet);
         proxyServletHolder.setAsyncSupported(true);
+        proxyServletHolder.setInitParameter("preserveHost", "true");
         proxyServletHolder.setInitParameter("maxThreads", "256");
         proxyServletHolder.setInitParameter("idleTimeout", String.valueOf(idleTimeout));
         proxyServletHolder.setInitParameter("timeout", String.valueOf(totalTimeout));
