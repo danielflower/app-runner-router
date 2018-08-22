@@ -16,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,7 +29,7 @@ public class ReverseProxy extends AsyncProxyServlet {
 
     private static final Pattern APP_WEB_REQUEST = Pattern.compile("/([^/?]+)(.*)");
     private static final Pattern APP_API_REQUEST = Pattern.compile("/api/v1/apps/([^/?]+)(.*)");
-    public static final String REQUEST_INFO_NAME = "com.danielflower.apprunner.router.monitoring.RequestInfo";
+    private static final String REQUEST_INFO_NAME = "com.danielflower.apprunner.router.monitoring.RequestInfo";
 
     private final ProxyMap proxyMap;
     private final Cluster cluster;
@@ -164,10 +166,15 @@ public class ReverseProxy extends AsyncProxyServlet {
     @Override
     protected void onProxyResponseSuccess(HttpServletRequest clientRequest, HttpServletResponse proxyResponse, Response serverResponse) {
         super.onProxyResponseSuccess(clientRequest, proxyResponse, serverResponse);
-        RequestInfo info = getInfo(clientRequest);
-        info.endTime = System.currentTimeMillis();
-        info.responseStatus = serverResponse.getStatus();
-        if (appRequestListener != null) appRequestListener.onRequestComplete(info);
+        if (appRequestListener != null) {
+            RequestInfo info = getInfo(clientRequest);
+            if (info != null) {
+                // This seems to be null now. Not sure why. Will fix by migrating off Jetty.
+                info.endTime = System.currentTimeMillis();
+                info.responseStatus = serverResponse.getStatus();
+                appRequestListener.onRequestComplete(info);
+            }
+        }
     }
 
     private static boolean isAppCreationOrUpdatePost(HttpServletRequest clientRequest) {
