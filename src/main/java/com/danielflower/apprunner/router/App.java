@@ -71,10 +71,10 @@ public class App {
         }
         jettyServer.setConnectors(serverConnectorList.toArray(new Connector[0]));
 
-
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
+        boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
-        HttpClient httpClient = new HttpClient(new SslContextFactory(true));
+        HttpClient httpClient = new HttpClient(new SslContextFactory(allowUntrustedInstances));
         httpClient.start();
 
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
@@ -83,11 +83,10 @@ public class App {
         cluster.refreshRunnerCountCache(mapManager.getCurrentMapping());
 
         String accessLogFilename = config.get("access.log.path", null);
-        boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
         AppRequestListener appRequestListener = getAppRequestListener();
         List<Object> localRestResources = asList(new RunnerResource(cluster, mapManager), new SystemResource(systemInfo, cluster, httpClient));
-        webServer = new WebServer(jettyServer, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances, appRequestListener,
+        webServer = new WebServer(jettyServer, httpClient, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances, appRequestListener,
             config.getInt("apprunner.proxy.idle.timeout", 30000), config.getInt("apprunner.proxy.total.timeout", 20*60000));
         webServer.start();
 

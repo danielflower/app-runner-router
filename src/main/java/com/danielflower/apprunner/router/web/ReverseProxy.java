@@ -5,6 +5,7 @@ import com.danielflower.apprunner.router.mgmt.Runner;
 import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import com.danielflower.apprunner.router.monitoring.RequestInfo;
 import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpHeaderValue;
@@ -19,6 +20,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +28,15 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 public class ReverseProxy extends AsyncProxyServlet {
     public static final Logger log = LoggerFactory.getLogger(ReverseProxy.class);
+
+    public static Set<String> hopByHopHeaders() {
+        return HOP_HEADERS;
+    }
+
+    public void copyRequestHeadersForProxying(HttpServletRequest clientRequest, Request proxyRequest) {
+        copyRequestHeaders(clientRequest, proxyRequest);
+        addProxyHeaders(clientRequest, proxyRequest);
+    }
 
     private static final Pattern APP_WEB_REQUEST = Pattern.compile("/([^/?]+)(.*)");
     private static final Pattern APP_API_REQUEST = Pattern.compile("/api/v1/apps/([^/?]+)(.*)");

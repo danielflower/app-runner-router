@@ -5,6 +5,7 @@ import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
@@ -34,6 +35,7 @@ public class WebServer implements AutoCloseable {
     private Server jettyServer;
     private final String defaultAppName;
     private final List<Object> localRestResources;
+    private final HttpClient httpClient;
     private final Cluster cluster;
     private final MapManager mapManager;
     private final String accessLogFilename;
@@ -42,8 +44,9 @@ public class WebServer implements AutoCloseable {
     private final int idleTimeout;
     private final int totalTimeout;
 
-    public WebServer(Server jettyServer, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances, AppRequestListener appRequestListener, int idleTimeout, int totalTimeout) {
+    public WebServer(Server jettyServer, HttpClient httpClient, Cluster cluster, MapManager mapManager, ProxyMap proxyMap, String defaultAppName, List<Object> localRestResources, String accessLogFilename, boolean allowUntrustedInstances, AppRequestListener appRequestListener, int idleTimeout, int totalTimeout) {
         this.jettyServer = jettyServer;
+        this.httpClient = httpClient;
         this.cluster = cluster;
         this.mapManager = mapManager;
         this.proxyMap = proxyMap;
@@ -61,9 +64,11 @@ public class WebServer implements AutoCloseable {
         handlers.addHandler(new CoresHeadersAdderHandler());
         handlers.addHandler(createHomeRedirect());
         handlers.addHandler(gzipped(new AppsCallAggregator(mapManager, cluster)));
+        ReverseProxy reverseProxy = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener);
+        handlers.addHandler(gzipped(new CreateAppHandler(proxyMap, cluster, httpClient, reverseProxy)));
         handlers.addRestServiceHandler(gzipped(createRestService()));
         handlers.addHandler(new FavIconHandler());
-        handlers.addReverseProxyHandler(createReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener));
+        handlers.addReverseProxyHandler(createReverseProxyHandler(reverseProxy));
         jettyServer.setHandler(handlers);
         addAccessLog();
         jettyServer.start();
@@ -150,9 +155,8 @@ public class WebServer implements AutoCloseable {
         };
     }
 
-    private ServletHandler createReverseProxy(Cluster cluster, ProxyMap proxyMap, boolean allowUntrustedInstances, AppRequestListener appRequestListener) {
-        ReverseProxy servlet = new ReverseProxy(cluster, proxyMap, allowUntrustedInstances, appRequestListener);
-        ServletHolder proxyServletHolder = new ServletHolder(servlet);
+    private ServletHandler createReverseProxyHandler(ReverseProxy reverseProxy) {
+        ServletHolder proxyServletHolder = new ServletHolder(reverseProxy);
         proxyServletHolder.setAsyncSupported(true);
         proxyServletHolder.setInitParameter("preserveHost", "true");
         proxyServletHolder.setInitParameter("maxThreads", "256");
