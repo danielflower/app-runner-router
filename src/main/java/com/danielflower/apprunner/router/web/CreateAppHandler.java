@@ -2,9 +2,10 @@ package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.util.InputStreamContentProvider;
+import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -18,6 +19,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 class CreateAppHandler extends AbstractHandler {
@@ -36,14 +38,14 @@ class CreateAppHandler extends AbstractHandler {
     }
 
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        log.info("In here la: " + request.getMethod() + " " + target);
         if (!canHandle(target, request)) {
             return;
         }
         try {
-            log.info("Going to creating an app");
+            log.info("Going to create an app");
 
             List<String> excludedRunnerIDs = Collections.list(request.getHeaders("X-Excluded-Runner"));
+            String createBody = IOUtils.toString(request.getInputStream(), StandardCharsets.UTF_8);
 
             boolean finished = false;
             while (!finished) {
@@ -51,12 +53,26 @@ class CreateAppHandler extends AbstractHandler {
                 if (targetRunner.isPresent()) {
                     URI targetAppRunner = targetRunner.get().url.resolve(target);
                     org.eclipse.jetty.client.api.Request creationReq = client.POST(targetAppRunner)
-                        .content(new InputStreamContentProvider(request.getInputStream()));
+                        .content(new StringContentProvider(createBody));
 
                     reverseProxy.copyRequestHeadersForProxying(request, creationReq);
 
-                    ContentResponse creationResp = creationReq.send();
-                    log.info("Proxying app creation with " + creationResp);
+                    ContentResponse creationResp;
+                    try {
+                        creationResp = creationReq.send();
+                        if ((creationResp.getStatus() / 100) == 5) {
+                            throw new RuntimeException("Got a " + creationResp.getStatus() + " response - " + creationResp.getContentAsString());
+                        }
+                        log.info("Proxying app creation with " + creationResp);
+
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (Exception e) {
+                        targetRunner.get().refreshRunnerCountCache(proxyMap.getAll());
+                        excludedRunnerIDs.add(targetRunner.get().id);
+                        log.warn("Error while calling POST " + targetAppRunner + " to create a new app. Will retry if there are more runners. Error was " + e.getClass().getName() + " " + e.getMessage());
+                        continue;
+                    }
                     response.setStatus(creationResp.getStatus());
 
                     Set<String> hopHeaders = ReverseProxy.hopByHopHeaders();
@@ -68,10 +84,12 @@ class CreateAppHandler extends AbstractHandler {
                     }
                     try (PrintWriter writer = response.getWriter()) {
                         String content = creationResp.getContentAsString();
-                        log.info("Created new app: " + content);
-                        JSONObject resp = new JSONObject(content);
-                        String appName = resp.getString("name");
-                        proxyMap.add(appName, targetAppRunner.resolve("/" + appName));
+                        if (creationResp.getStatus() == 201) {
+                            log.info("Created new app: " + content);
+                            JSONObject resp = new JSONObject(content);
+                            String appName = resp.getString("name");
+                            proxyMap.add(appName, targetAppRunner.resolve("/" + appName));
+                        }
                         finished = true;
                         writer.write(content);
                     }

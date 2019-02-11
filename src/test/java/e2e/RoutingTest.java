@@ -267,8 +267,13 @@ public class RoutingTest {
     public void canAddAppsEvenIfSomeRunnersNotRunning() throws Exception {
         AppRunnerInstance stoppedOne = AppRunnerInstance.latest("will-stop").start();
         httpClient.registerRunner(stoppedOne.id(), stoppedOne.httpUrl(), 20);
-//        httpClient.registerRunner(stoppedOne.id() + "_2", stoppedOne.httpUrl(), 20);
-//        httpClient.registerRunner(stoppedOne.id() + "_3", stoppedOne.httpUrl(), 20);
+
+        AppRunnerInstance instanceWithoutMaven = AppRunnerInstance.latest("mavenless");
+        instanceWithoutMaven.env.put("M2_HOME", "target/invalid-path");
+        instanceWithoutMaven = instanceWithoutMaven.start();
+        httpClient.registerRunner(instanceWithoutMaven.id(), instanceWithoutMaven.httpUrl(), 20);
+        httpClient.registerRunner(stoppedOne.id() + "_2", stoppedOne.httpUrl(), 20);
+        httpClient.registerRunner(stoppedOne.id() + "_3", stoppedOne.httpUrl(), 20);
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 20);
         stoppedOne.shutDown();
 
@@ -276,8 +281,6 @@ public class RoutingTest {
 
         assertThat(httpClient.createApp(app1.gitUrl(), "app1"), equalTo(201, containsString("app1")));
     }
-
-
 
     @Test
     public void failedCreationDoesNotPermanentlyIncrementUsage() throws Exception {
