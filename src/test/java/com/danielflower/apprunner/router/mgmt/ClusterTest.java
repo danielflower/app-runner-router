@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Collections.emptyList;
@@ -27,7 +28,7 @@ public class ClusterTest {
 
     @Rule public final JUnitRuleMockery context = new JUnitRuleMockery();
     private final MapManager mapManager = context.mock(MapManager.class);
-    private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
+    private File configFile = new File("target/clusters/" + UUID.randomUUID() + "/cluster.json");
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
