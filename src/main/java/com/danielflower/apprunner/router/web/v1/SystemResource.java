@@ -1,21 +1,21 @@
 package com.danielflower.apprunner.router.web.v1;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
-import com.danielflower.apprunner.router.mgmt.ForwardedHeadersAdder;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import com.danielflower.apprunner.router.mgmt.SystemInfo;
+import io.muserver.MuRequest;
+import io.muserver.MuStats;
+import io.muserver.murp.ReverseProxy;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpMethod;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -23,7 +23,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,7 +34,6 @@ import java.util.concurrent.*;
 public class SystemResource {
     public static final Logger log = LoggerFactory.getLogger(SystemResource.class);
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    private final ForwardedHeadersAdder forwardedHeadersAdder = new ForwardedHeadersAdder();
     private final SystemInfo systemInfo;
     private final String routerVersion = ObjectUtils.firstNonNull(SystemResource.class.getPackage().getImplementationVersion(), "master");
 
@@ -49,7 +47,7 @@ public class SystemResource {
         this.httpClient = httpClient;
     }
 
-    private List<JSONObject> loadAllRunnersWithSystems(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
+    private List<JSONObject> loadAllRunnersWithSystems(MuRequest clientRequest, List<Runner> runners) throws InterruptedException, TimeoutException, ExecutionException {
         List<JSONObject> results = new ArrayList<>();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
@@ -63,12 +61,14 @@ public class SystemResource {
         return results;
     }
 
-    private JSONObject loadSystemInfoForRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
+    private JSONObject loadSystemInfoForRunner(MuRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/system");
         Request req = httpClient.newRequest(uri)
             .timeout(5, TimeUnit.SECONDS)
             .method(HttpMethod.GET);
-        forwardedHeadersAdder.addHeaders(clientRequest, req);
+        if (clientRequest != null) {
+            ReverseProxy.setForwardedHeaders(clientRequest, req, false, true);
+        }
         JSONObject runnerJson = runner.toJSON();
         try {
             ContentResponse resp = req.send();
@@ -96,11 +96,21 @@ public class SystemResource {
 
     @GET
     @Produces("application/json")
-    public Response systemInfo(@Context HttpServletRequest clientRequest) throws IOException, ExecutionException, InterruptedException {
+    public Response systemInfo(@Context MuRequest clientRequest) throws ExecutionException, InterruptedException {
         JSONObject result = new JSONObject();
         result.put("host", systemInfo.hostName);
         result.put("user", systemInfo.user);
         result.put("appRunnerVersion", routerVersion);
+
+        MuStats stats = clientRequest.server().stats();
+        result.put("serverStats",
+            new JSONObject()
+                .put("completedRequests", stats.completedRequests())
+                .put("activeConnections", stats.activeConnections())
+                .put("invalidHttpRequests", stats.invalidHttpRequests())
+                .put("bytesRead", stats.bytesRead())
+                .put("bytesSent", stats.bytesSent())
+        );
 
         JSONObject os = new JSONObject();
         result.put("os", os);
@@ -170,7 +180,7 @@ public class SystemResource {
     @GET
     @Path("/samples/{name}")
     @Produces("application/zip")
-    public Response samples(@Context UriInfo uri, @PathParam("name") String name) throws IOException, ExecutionException, InterruptedException {
+    public Response samples(@Context MuRequest muRequest, @Context UriInfo uri, @PathParam("name") String name) throws ExecutionException, InterruptedException {
         Set<String> names = new HashSet<>();
 
         List<JSONObject> runners;
@@ -193,13 +203,9 @@ public class SystemResource {
                         Request targetRequest = httpClient.newRequest(zipUri)
                             .method(HttpMethod.GET)
                             .timeout(30, TimeUnit.SECONDS);
-                        forwardedHeadersAdder.addHeaders(null, targetRequest);
                         ContentResponse targetResponse = targetRequest.send();
                         if (targetResponse.getStatus() == 200) {
                             Response.ResponseBuilder clientResponse = Response.ok(targetResponse.getContent());
-                            for (HttpField httpField : targetResponse.getHeaders()) {
-                                clientResponse.header(httpField.getName(), httpField.getValue());
-                            }
                             log.info("Return sample for " + name + " from " + zipUri);
                             return clientResponse.build();
                         }

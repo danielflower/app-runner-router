@@ -3,11 +3,11 @@ package com.danielflower.apprunner.router.web.v1;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
+import io.muserver.MuRequest;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -47,14 +47,14 @@ public class RunnerResource {
         if (app.isPresent()) {
             return Response.ok(app.get().toJSON().toString(4)).build();
         } else {
-            return Response.status(Response.Status.NOT_FOUND).build();
+            throw new NotFoundException("No runner with ID " + id + " found");
         }
     }
 
     @GET
     @Path("/{id}/apps")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getRunnerApps(@Context HttpServletRequest clientRequest, @PathParam("id") String id) {
+    public Response getRunnerApps(@Context MuRequest clientRequest, @PathParam("id") String id) {
         Optional<Runner> app = cluster.runner(id);
         if (!app.isPresent()) {
             return Response.status(Response.Status.NOT_FOUND).build();
@@ -71,7 +71,7 @@ public class RunnerResource {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(@Context HttpServletRequest clientRequest,
+    public Response create(@Context MuRequest clientRequest,
                            @Context UriInfo uriInfo,
                            @FormParam("id") String id,
                            @FormParam("url") String url,
@@ -111,7 +111,7 @@ public class RunnerResource {
     @PUT
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response update(@Context HttpServletRequest clientRequest,
+    public Response update(@Context MuRequest clientRequest,
                            @Context UriInfo uriInfo,
                            @PathParam("id") String id,
                            @FormParam("url") String url,

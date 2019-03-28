@@ -1,6 +1,8 @@
 package com.danielflower.apprunner.router.mgmt;
 
 import com.danielflower.apprunner.router.web.ProxyMap;
+import io.muserver.MuRequest;
+import io.muserver.murp.ReverseProxy;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
@@ -9,7 +11,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,6 @@ public class ClusterQueryingMapManager implements MapManager {
 
     private final ProxyMap proxyMap;
     private final HttpClient httpClient;
-    private final ForwardedHeadersAdder forwardedHeadersAdder = new ForwardedHeadersAdder();
 
     public ClusterQueryingMapManager(ProxyMap proxyMap, HttpClient httpClient) {
         this.proxyMap = proxyMap;
@@ -35,7 +35,7 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public Result loadAllApps(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException {
+    public Result loadAllApps(MuRequest clientRequest, List<Runner> runners) throws InterruptedException {
         Result result = new Result();
         log.info("Looking up app info from " + runners);
         List<Future<JSONObject>> futures = new ArrayList<>();
@@ -59,15 +59,18 @@ public class ClusterQueryingMapManager implements MapManager {
     }
 
     @Override
-    public JSONObject loadRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
+    public JSONObject loadRunner(MuRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/apps");
-        Request request = httpClient.newRequest(uri)
-            .timeout(10, TimeUnit.SECONDS)
-            .method(HttpMethod.GET);
-        forwardedHeadersAdder.addHeaders(clientRequest, request);
         ContentResponse resp;
         try {
-            resp = request.send();
+            Request request = httpClient.newRequest(uri)
+                .timeout(10, TimeUnit.SECONDS)
+                .method(HttpMethod.GET);
+            if (clientRequest != null) {
+                ReverseProxy.setForwardedHeaders(clientRequest, request, false, true);
+            }
+            resp = request
+                .send();
         } catch (TimeoutException e) {
             throw new TimeoutException("Timed out calling " + uri);
         }

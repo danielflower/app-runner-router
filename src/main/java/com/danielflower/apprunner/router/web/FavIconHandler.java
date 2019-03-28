@@ -1,21 +1,17 @@
 package com.danielflower.apprunner.router.web;
 
-import org.eclipse.jetty.http.HttpHeader;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
+import io.muserver.*;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import javax.ws.rs.NotFoundException;
+import java.io.OutputStream;
 import java.net.URL;
+import java.util.Map;
 
-class FavIconHandler extends AbstractHandler {
+public class FavIconHandler implements RouteHandler {
     private static final Logger log = LoggerFactory.getLogger(FavIconHandler.class);
 
     private final byte[] favicon;
@@ -26,7 +22,7 @@ class FavIconHandler extends AbstractHandler {
             URL fav = this.getClass().getClassLoader().getResource("favicon.ico");
             Resource r = Resource.newResource(fav);
             bytes = IO.readBytes(r.getInputStream());
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("Could not load favicon", e);
             bytes = null;
         }
@@ -34,16 +30,15 @@ class FavIconHandler extends AbstractHandler {
     }
 
     @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        if (target.equalsIgnoreCase("/favicon.ico") && favicon != null) {
-            baseRequest.setHandled(true);
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.setContentType("image/x-icon");
-            response.setContentLength(favicon.length);
-            response.setHeader(HttpHeader.CACHE_CONTROL.toString(),"max-age=360000,public");
-            try (ServletOutputStream outputStream = response.getOutputStream()) {
-                outputStream.write(favicon);
-            }
+    public void handle(MuRequest request, MuResponse response, Map<String, String> pathParams) throws Exception {
+        if (favicon == null) {
+            throw new NotFoundException();
+        }
+        response.contentType(ContentTypes.IMAGE_X_ICON);
+        response.headers().set(HeaderNames.CONTENT_LENGTH, favicon.length);
+        response.headers().set(HeaderNames.CACHE_CONTROL, "max-age=360000,public");
+        try (OutputStream os = response.outputStream()) {
+            os.write(favicon);
         }
     }
 }

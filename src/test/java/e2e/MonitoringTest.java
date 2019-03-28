@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
 
-@Ignore("Not working with jetty anymore")
 public class MonitoringTest {
     private static AppRunnerInstance instance;
     private App router;

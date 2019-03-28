@@ -93,8 +93,6 @@ public class AvailabilityTest {
 
     @Test
     public void systemCallStillReturnsEvenWhenRunnersAreUnavailable() throws Exception {
-
-
         ContentResponse systemResponse = httpClient.get("/api/v1/system");
         JSONObject all = new JSONObject(systemResponse.getContentAsString());
         assertThat(all.getBoolean("appRunnerStarted"), equalTo(false));

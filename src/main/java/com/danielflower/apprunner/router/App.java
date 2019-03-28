@@ -6,30 +6,32 @@ import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import com.danielflower.apprunner.router.monitoring.BlockingUdpSender;
-import com.danielflower.apprunner.router.web.ProxyMap;
-import com.danielflower.apprunner.router.web.WebServer;
+import com.danielflower.apprunner.router.web.*;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
+import io.muserver.Method;
+import io.muserver.MuServer;
+import io.muserver.SSLContextBuilder;
+import io.muserver.murp.HttpClientBuilder;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Cipher;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-import static com.danielflower.apprunner.router.Config.dirPath;
-import static java.util.Arrays.asList;
+import static io.muserver.ContextHandlerBuilder.context;
+import static io.muserver.MuServerBuilder.muServer;
+import static io.muserver.murp.ReverseProxyBuilder.reverseProxy;
+import static io.muserver.rest.CORSConfigBuilder.corsConfig;
+import static io.muserver.rest.RestHandlerBuilder.restHandler;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
+    public static final String VIA_VALUE = "HTTP/1.1 apprunnerrouter";
 
     private final Config config;
-    private WebServer webServer;
+    private MuServer muServer;
 
     public App(Config config) {
         this.config = config;
@@ -43,61 +45,69 @@ public class App {
 
         ProxyMap proxyMap = new ProxyMap();
 
-        HttpConfiguration httpConfig = new HttpConfiguration();
-        httpConfig.setOutputBufferSize(128);
-        httpConfig.addCustomizer(new SecureRequestCustomizer());
-        httpConfig.addCustomizer(new ForwardedRequestCustomizer()); // must come last so the protocol doesn't get overwritten
 
-        Server jettyServer = new Server();
-        List<ServerConnector> serverConnectorList = new ArrayList<>();
         int httpPort = config.getInt(Config.SERVER_HTTP_PORT, -1);
-        if (httpPort > -1) {
-            ServerConnector httpConnector = new ServerConnector(jettyServer, new HttpConnectionFactory(httpConfig));
-            httpConnector.setPort(httpPort);
-            serverConnectorList.add(httpConnector);
-        }
         int httpsPort = config.getInt(Config.SERVER_HTTPS_PORT, -1);
-        SslContextFactory sslContextFactory = null;
+        SSLContextBuilder sslContext = null;
         if (httpsPort > -1) {
-            sslContextFactory = new SslContextFactory();
-            sslContextFactory.setKeyStorePath(dirPath(config.getFile("apprunner.keystore.path")));
-            sslContextFactory.setKeyStorePassword(config.get("apprunner.keystore.password"));
-            sslContextFactory.setKeyManagerPassword(config.get("apprunner.keymanager.password"));
-            sslContextFactory.setKeyStoreType(config.get("apprunner.keystore.type", "JKS"));
-            ServerConnector httpConnector = new ServerConnector(jettyServer, sslContextFactory, new HttpConnectionFactory(httpConfig));
-
-            httpConnector.setPort(httpsPort);
-            serverConnectorList.add(httpConnector);
+            sslContext = SSLContextBuilder.sslContext()
+                .withKeystore(config.getFile("apprunner.keystore.path"))
+                .withKeystorePassword(config.get("apprunner.keystore.password"))
+                .withKeyPassword(config.get("apprunner.keymanager.password"))
+                .withKeystoreType(config.get("apprunner.keystore.type", "JKS"));
         }
-        jettyServer.setConnectors(serverConnectorList.toArray(new Connector[0]));
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
-        HttpClient httpClient = new HttpClient(new SslContextFactory(allowUntrustedInstances));
-        httpClient.start();
+        int idleTimeout = config.getInt("apprunner.proxy.idle.timeout", 30000);
+
+        HttpClient httpClient = HttpClientBuilder.httpClient()
+            .withIdleTimeoutMillis(idleTimeout)
+            .withMaxConnectionsPerDestination(256)
+            .withSslContextFactory(new SslContextFactory(allowUntrustedInstances))
+            .build();
 
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAllApps(null, cluster.getRunners());
         cluster.refreshRunnerCountCache(mapManager.getCurrentMapping());
 
-        String accessLogFilename = config.get("access.log.path", null);
-
         AppRequestListener appRequestListener = getAppRequestListener();
-        List<Object> localRestResources = asList(new RunnerResource(cluster, mapManager), new SystemResource(systemInfo, cluster, httpClient));
-        webServer = new WebServer(jettyServer, httpClient, cluster, mapManager, proxyMap, defaultAppName, localRestResources, accessLogFilename, allowUntrustedInstances, appRequestListener,
-            config.getInt("apprunner.proxy.idle.timeout", 30000), config.getInt("apprunner.proxy.total.timeout", 20*60000));
-        webServer.start();
+        int totalTimeout = config.getInt("apprunner.proxy.total.timeout", 20 * 60000);
 
-        if (sslContextFactory != null) {
-            log.info("Supported SSL protocols: " + Arrays.toString(sslContextFactory.getSelectedProtocols()));
-            log.info("Supported Cipher suites: " + Arrays.toString(sslContextFactory.getSelectedCipherSuites()));
+        ReverseProxyManager reverseProxyManager = new ReverseProxyManager(cluster, proxyMap, appRequestListener);
+        muServer = muServer()
+            .withHttpPort(httpPort)
+            .withHttpsPort(httpsPort)
+            .withHttpsConfig(sslContext)
+            .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
+            .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
+            .addHandler(Method.GET, "/api/v1/apps", new AppsCallAggregator(mapManager, cluster))
+            .addHandler(Method.POST, "/api/v1/apps", new CreateAppHandler(proxyMap, cluster, httpClient))
+            .addHandler(context("/api/v1")
+                .addHandler(restHandler(new RunnerResource(cluster, mapManager), new SystemResource(systemInfo, cluster, httpClient))
+                    .withCORS(corsConfig().withAllowedOriginRegex(".*"))
+                    .withOpenApiJsonUrl("/router-openapi.json")
+                    .withOpenApiHtmlUrl("/router-api.html")
 
-            int maxKeyLen = Cipher.getMaxAllowedKeyLength("AES");
-            if (maxKeyLen < 8192) {
-                log.warn("The current java version (" + System.getProperty("java.home") + ") limits key length to " + maxKeyLen + " bits so modern browsers may have issues connecting. Install the JCE Unlimited Strength Jurisdiction Policy to allow high strength SSL connections.");
-            }
+                )
+            )
+            .addHandler(reverseProxy()
+                .withTotalTimeout(totalTimeout)
+                .withViaName(VIA_VALUE)
+                .sendLegacyForwardedHeaders(true)
+                .discardClientForwardedHeaders(false)
+                .withUriMapper(reverseProxyManager)
+                .addProxyCompleteListener(reverseProxyManager)
+                .withHttpClient(httpClient)
+            )
+            .start();
+
+        if (httpPort >= 0 && httpsPort >= 0) {
+            log.info("Started web server at " + muServer.httpsUri() + " and " + muServer.httpUri());
+        } else {
+            log.info("Started web server at " + muServer.uri());
         }
     }
 
@@ -113,15 +123,11 @@ public class App {
 
     public void shutdown() {
         log.info("Shutdown invoked");
-        if (webServer != null) {
+        if (muServer != null) {
             log.info("Stopping web server");
-            try {
-                webServer.close();
-            } catch (Exception e) {
-                log.info("Error while stopping", e);
-            }
+            muServer.stop();
             log.info("Shutdown complete");
-            webServer = null;
+            muServer = null;
         }
     }
 

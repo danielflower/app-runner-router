@@ -29,9 +29,7 @@ import static com.danielflower.apprunner.router.Config.dirPath;
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static scaffolding.ContentResponseMatcher.equalTo;
 
@@ -129,13 +127,11 @@ public class RoutingTest {
 
         String headersFromTwo = httpsClient.get("/app2/headers").getContentAsString();
 
-        System.out.println();
-        System.out.println("headersFromOne = " + headersFromOne);
-        System.out.println();
-        System.out.println("headersFromTwo = " + headersFromTwo);
-        System.out.println();
+        assertThat(headersFromOne, containsString(";proto=https\r\n"));
+        assertThat(headersFromOne, not(containsString(";proto=http\r\n")));
+        assertThat(headersFromOne.indexOf(";proto=https\r\n"), not(Matchers.equalTo(headersFromOne.lastIndexOf(";proto=https\r\n"))));
 
-        assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
+        assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\n"));
         assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
         assertThat(headersFromOne, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
         assertThat(headersFromTwo, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
@@ -300,7 +296,7 @@ public class RoutingTest {
 
         // Can't PUT to a non-existent runner
         assertThat(httpClient.updateRunner("non-existent-runner-id", latestAppRunnerWithoutNode.httpUrl(), 50),
-            equalTo(404, equalTo("No runner with the ID non-existent-runner-id exists")));
+            equalTo(404, Matchers.equalTo("No runner with the ID non-existent-runner-id exists")));
 
         // Can update a runner
         assertThat(httpClient.updateRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100),
@@ -334,7 +330,7 @@ public class RoutingTest {
 
         ContentResponse resp = httpClient.getRunnerApps(latestAppRunnerWithoutNode.id());
         assertThat(resp.getStatus(), is(200));
-        assertThat(resp.getHeaders().get("Content-Type"), equalTo("application/json"));
+        assertThat(resp.getHeaders().get("Content-Type"), Matchers.equalTo("application/json"));
         JSONObject appJson = new JSONObject(resp.getContentAsString());
         assertThat(appJson.getJSONArray("apps").length(), is(1));
     }
@@ -353,7 +349,7 @@ public class RoutingTest {
         waiter.blockUntilReady();
 
         assertThat(httpClient.get("/my-app/"), equalTo(200, containsString("My Maven App")));
-        assertThat(numberOfApps(latestAppRunnerWithoutNode), equalTo(1));
+        assertThat(numberOfApps(latestAppRunnerWithoutNode), Matchers.equalTo(1));
 
         httpClient.stop("my-app");
     }

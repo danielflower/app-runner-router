@@ -1,13 +1,13 @@
 package com.danielflower.apprunner.router.mgmt;
 
 import com.danielflower.apprunner.router.web.ProxyMap;
+import io.muserver.MuRequest;
 import org.jmock.Expectations;
 import org.jmock.integration.junit4.JUnitRuleMockery;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -32,7 +32,7 @@ public class ClusterTest {
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);
-    private HttpServletRequest clientRequest = context.mock(HttpServletRequest.class);
+    private MuRequest clientRequest = context.mock(MuRequest.class);
     private Collection<String> excludeNone = emptyList();
 
     public ClusterTest() throws IOException {
@@ -41,7 +41,7 @@ public class ClusterTest {
     @Before
     public void allowStuff() throws Exception {
         context.checking(new Expectations() {{
-            allowing(mapManager).loadRunner(with(any(HttpServletRequest.class)), with(any(Runner.class)));
+            allowing(mapManager).loadRunner(with(any(MuRequest.class)), with(any(Runner.class)));
             allowing(mapManager).removeRunner(with(instanceOne));
             allowing(mapManager).getCurrentMapping();will(returnValue(new ConcurrentHashMap<String, URI>()));
         }});

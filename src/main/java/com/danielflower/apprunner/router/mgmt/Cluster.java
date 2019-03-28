@@ -1,17 +1,20 @@
 package com.danielflower.apprunner.router.mgmt;
 
+import io.muserver.MuRequest;
 import org.apache.commons.io.FileUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -51,7 +54,7 @@ public class Cluster {
         return runners;
     }
 
-    public synchronized void addRunner(HttpServletRequest clientRequest, Runner runner) throws Exception {
+    public synchronized void addRunner(MuRequest clientRequest, Runner runner) throws Exception {
         if (!runners.contains(runner)) {
             runners.add(runner);
         }

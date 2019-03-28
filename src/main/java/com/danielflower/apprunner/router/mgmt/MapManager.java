@@ -1,8 +1,8 @@
 package com.danielflower.apprunner.router.mgmt;
 
+import io.muserver.MuRequest;
 import org.json.JSONObject;
 
-import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,9 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public interface MapManager {
     ConcurrentHashMap<String, URI> getCurrentMapping();
 
-    Result loadAllApps(HttpServletRequest clientRequest, List<Runner> runners) throws InterruptedException;
+    Result loadAllApps(MuRequest clientRequest, List<Runner> runners) throws InterruptedException;
 
-    JSONObject loadRunner(HttpServletRequest clientRequest, Runner runner) throws Exception;
+    JSONObject loadRunner(MuRequest clientRequest, Runner runner) throws Exception;
 
     void removeRunner(Runner runner);
 
