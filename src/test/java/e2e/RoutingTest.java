@@ -276,6 +276,8 @@ public class RoutingTest {
         AppRepo app1 = AppRepo.create("maven");
 
         assertThat(httpClient.createApp(app1.gitUrl(), "app1"), equalTo(201, containsString("app1")));
+
+        instanceWithoutMaven.shutDown();
     }
 
     @Test
