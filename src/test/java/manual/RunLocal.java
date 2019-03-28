@@ -66,6 +66,7 @@ public class RunLocal {
         env.put("apprunner.keymanager.password", "password");
         env.put("apprunner.udp.listener.host", "localhost");
         env.put("apprunner.udp.listener.port", "12888");
+        env.put("appserver.default.app.name", "app-runner-home");
 
         router = new App(new Config(env));
         router.start();
@@ -76,6 +77,8 @@ public class RunLocal {
         registerRunner(client, appRunner2, 50);
         registerRunner(client, appRunner3, 50);
 
+        client.createApp("git@github.com:danielflower/app-runner-home.git", "app-runner-home");
+        client.deploy("app-runner-home");
         setupSampleApps(client);
 
         log.info("*********** Ready to go at " + routerUri + " ***************");

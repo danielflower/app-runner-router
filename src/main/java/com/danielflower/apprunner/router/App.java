@@ -28,7 +28,7 @@ import static io.muserver.rest.RestHandlerBuilder.restHandler;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
-    public static final String VIA_VALUE = "HTTP/1.1 apprunnerrouter";
+    public static final String VIA_VALUE = "apprunnerrouter";
 
     private final Config config;
     private MuServer muServer;
@@ -90,7 +90,6 @@ public class App {
                     .withCORS(corsConfig().withAllowedOriginRegex(".*"))
                     .withOpenApiJsonUrl("/router-openapi.json")
                     .withOpenApiHtmlUrl("/router-api.html")
-
                 )
             )
             .addHandler(reverseProxy()

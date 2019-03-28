@@ -7,6 +7,7 @@ import io.muserver.HeaderNames;
 import io.muserver.MuRequest;
 import io.muserver.MuResponse;
 import io.muserver.RouteHandler;
+import io.muserver.murp.ReverseProxy;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
@@ -48,7 +49,8 @@ public class CreateAppHandler implements RouteHandler {
                     org.eclipse.jetty.client.api.Request creationReq = client.POST(targetAppRunner)
                         .content(new StringContentProvider(createBody));
 
-                    io.muserver.murp.ReverseProxy.setRequestHeaders(request, creationReq, false, true, App.VIA_VALUE);
+                    ReverseProxy.setRequestHeaders(request, creationReq, false, true, "HTTP/1.1 " + App.VIA_VALUE);
+                    creationReq.header("accept", "*/*"); // for old apprunner instances
 
                     ContentResponse creationResp;
                     try {
@@ -71,7 +73,7 @@ public class CreateAppHandler implements RouteHandler {
                     response.status(creationResp.getStatus());
                     response.headers().remove(HeaderNames.DATE);
 
-                    Set<String> hopHeaders = io.muserver.murp.ReverseProxy.HOP_BY_HOP_HEADERS;
+                    Set<String> hopHeaders = ReverseProxy.HOP_BY_HOP_HEADERS;
                     for (HttpField header : creationResp.getHeaders()) {
                         String hn = header.getName().toLowerCase();
                         if (!hopHeaders.contains(hn) && !hn.equals("content-encoding")) {
