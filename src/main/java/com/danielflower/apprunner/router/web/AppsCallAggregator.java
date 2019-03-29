@@ -41,7 +41,7 @@ public class AppsCallAggregator implements RouteHandler {
                     unsorted.add((JSONObject) singleApp);
                 }
             }
-            unsorted.sort(Comparator.comparing(o -> o.getString("name")));
+            unsorted.sort(Comparator.comparing(o -> o.getString("name").toLowerCase()));
             JSONArray apps = new JSONArray();
             for (JSONObject jsonObject : unsorted) {
                 apps.put(jsonObject);
