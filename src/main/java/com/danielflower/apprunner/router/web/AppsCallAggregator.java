@@ -2,34 +2,35 @@ package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
-import io.muserver.ContentTypes;
-import io.muserver.MuRequest;
-import io.muserver.MuResponse;
-import io.muserver.RouteHandler;
+import io.muserver.*;
+import io.muserver.rest.CORSConfig;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.ServerErrorException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static java.util.Arrays.asList;
 
 public class AppsCallAggregator implements RouteHandler {
     private static final Logger log = LoggerFactory.getLogger(AppsCallAggregator.class);
     private final MapManager mapManager;
     private final Cluster cluster;
+    private final CORSConfig corsConfig;
 
-    public AppsCallAggregator(MapManager mapManager, Cluster cluster) {
+    public AppsCallAggregator(MapManager mapManager, Cluster cluster, CORSConfig corsConfig) {
         this.mapManager = mapManager;
         this.cluster = cluster;
+        this.corsConfig = corsConfig;
     }
 
     @Override
     public void handle(MuRequest request, MuResponse response, Map<String, String> pathParams) throws Exception {
         try {
+            corsConfig.writeHeaders(request, response, new HashSet<>(asList(Method.GET, Method.POST, Method.PUT, Method.DELETE)));
+
             MapManager.Result results = mapManager.loadAllApps(request, cluster.getRunners());
             JSONObject all = new JSONObject();
             List<JSONObject> unsorted = new ArrayList<>();

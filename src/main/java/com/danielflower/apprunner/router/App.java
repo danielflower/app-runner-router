@@ -9,10 +9,12 @@ import com.danielflower.apprunner.router.monitoring.BlockingUdpSender;
 import com.danielflower.apprunner.router.web.*;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
+import io.muserver.HeaderNames;
 import io.muserver.Method;
 import io.muserver.MuServer;
 import io.muserver.SSLContextBuilder;
 import io.muserver.murp.HttpClientBuilder;
+import io.muserver.rest.CORSConfig;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
@@ -77,17 +79,27 @@ public class App {
         int totalTimeout = config.getInt("apprunner.proxy.total.timeout", 20 * 60000);
 
         ReverseProxyManager reverseProxyManager = new ReverseProxyManager(cluster, proxyMap, appRequestListener);
+        CORSConfig corsConfig = corsConfig().withAllOriginsAllowed()
+            .withAllowCredentials(true)
+            .withExposedHeaders("content-type", "accept", "authorization")
+            .build();
+        AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
+
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
             .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
-            .addHandler(Method.GET, "/api/v1/apps", new AppsCallAggregator(mapManager, cluster))
-            .addHandler(Method.POST, "/api/v1/apps", new CreateAppHandler(proxyMap, cluster, httpClient))
             .addHandler(context("/api/v1")
-                .addHandler(restHandler(new RunnerResource(cluster, mapManager), new SystemResource(systemInfo, cluster, httpClient))
-                    .withCORS(corsConfig().withAllowedOriginRegex(".*"))
+                .addHandler(Method.GET, "/apps", appsCallAggregator)
+                .addHandler(Method.HEAD, "/apps", appsCallAggregator)
+                .addHandler(Method.OPTIONS, "/apps", (request, response, pathParams) -> response.headers().set(HeaderNames.ALLOW, "GET, POST, HEAD, OPTIONS"))
+                .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, cluster, httpClient))
+                .addHandler(restHandler()
+                    .addResource(new RunnerResource(cluster, mapManager))
+                    .addResource(new SystemResource(systemInfo, cluster, httpClient))
+                    .withCORS(corsConfig)
                     .withOpenApiJsonUrl("/router-openapi.json")
                     .withOpenApiHtmlUrl("/router-api.html")
                 )

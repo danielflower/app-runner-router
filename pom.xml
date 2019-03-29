@@ -94,12 +94,12 @@
         <dependency>
             <groupId>io.muserver</groupId>
             <artifactId>mu-server</artifactId>
-            <version>0.24.1</version>
+            <version>0.25.1</version>
         </dependency>
         <dependency>
             <groupId>io.muserver</groupId>
             <artifactId>murp</artifactId>
-            <version>0.2.0</version>
+            <version>0.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
