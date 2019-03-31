@@ -59,6 +59,8 @@ public class App {
                 .withKeystoreType(config.get("apprunner.keystore.type", "JKS"));
         }
 
+        boolean discardClientFowarded = config.getBoolean("apprunner.proxy.discard.client.forwarded.headers", false);
+
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
         boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
 
@@ -108,7 +110,7 @@ public class App {
                 .withTotalTimeout(totalTimeout)
                 .withViaName(VIA_VALUE)
                 .sendLegacyForwardedHeaders(true)
-                .discardClientForwardedHeaders(false)
+                .discardClientForwardedHeaders(discardClientFowarded)
                 .withUriMapper(reverseProxyManager)
                 .addProxyCompleteListener(reverseProxyManager)
                 .withHttpClient(httpClient)
