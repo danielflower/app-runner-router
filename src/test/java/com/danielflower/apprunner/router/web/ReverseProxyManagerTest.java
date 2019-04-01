@@ -44,7 +44,7 @@ public class ReverseProxyManagerTest {
         proxyMap.add("my-app", URI.create("http://localhost:12345/my-app"));
         assertThat(reverseProxyManager.mapFrom(request("/my-app")), is(URI.create("http://localhost:12345/my-app")));
         assertThat(reverseProxyManager.mapFrom(request("/my-app/")), is(URI.create("http://localhost:12345/my-app/")));
-        assertThat(reverseProxyManager.mapFrom(request("/my-app/some/thing")), is(URI.create("http://localhost:12345/my-app/some/thing")));
+        assertThat(reverseProxyManager.mapFrom(request("/my-app/some/thing/and%20this+%26+that")), is(URI.create("http://localhost:12345/my-app/some/thing/and%20this+%26+that")));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class ReverseProxyManagerTest {
         proxyMap.add("my-app", URI.create("http://localhost:12345/my-app"));
         assertThat(reverseProxyManager.mapFrom(request("/my-app?blah=ha")), is(URI.create("http://localhost:12345/my-app?blah=ha")));
         assertThat(reverseProxyManager.mapFrom(request("/my-app/?blah=ha")), is(URI.create("http://localhost:12345/my-app/?blah=ha")));
-        assertThat(reverseProxyManager.mapFrom(request("/my-app/some/thing?blah=ha")), is(URI.create("http://localhost:12345/my-app/some/thing?blah=ha")));
+        assertThat(reverseProxyManager.mapFrom(request("/my-app/some/thing?blah=ha+ha%20ha")), is(URI.create("http://localhost:12345/my-app/some/thing?blah=ha+ha%20ha")));
     }
 
     @Test

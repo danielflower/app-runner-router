@@ -38,8 +38,8 @@ public class ReverseProxyManager implements UriMapper, ProxyCompleteListener {
     public URI mapFrom(MuRequest clientRequest) {
         RequestInfo requestInfo = attachInfoForMonitoring(clientRequest);
 
-        String uri = clientRequest.uri().getPath();
-        String query = Mutils.nullOrEmpty(clientRequest.uri().getQuery()) ? "" : "?" + clientRequest.uri().getQuery();
+        String uri = clientRequest.uri().getRawPath();
+        String query = Mutils.nullOrEmpty(clientRequest.uri().getRawQuery()) ? "" : "?" + clientRequest.uri().getRawQuery();
 
         requestInfo.url = clientRequest.uri().toString();
 
