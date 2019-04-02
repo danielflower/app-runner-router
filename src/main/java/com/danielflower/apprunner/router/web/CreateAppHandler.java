@@ -1,6 +1,5 @@
 package com.danielflower.apprunner.router.web;
 
-import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import io.muserver.*;
@@ -9,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
-import org.eclipse.jetty.http.HttpField;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,19 +47,17 @@ public class CreateAppHandler implements RouteHandler {
     }
 
     @Override
-    public void handle(MuRequest request, MuResponse response, Map<String, String> pathParams) {
+    public void handle(MuRequest request, MuResponse clientResp, Map<String, String> pathParams) {
         try {
-
-
             List<String> excludedRunnerIDs = new ArrayList<>(request.headers().getAll("X-Excluded-Runner"));
             String createBody = request.readBodyAsString();
 
             String nameFromBody = getNameFromBody(createBody);
             if (proxyMap.get(nameFromBody) != null) {
                 log.info("Was asked to create " + nameFromBody + " but it is already an existing app");
-                response.status(409);
-                response.contentType(ContentTypes.APPLICATION_JSON);
-                response.write(new JSONObject()
+                clientResp.status(409);
+                clientResp.contentType(ContentTypes.APPLICATION_JSON);
+                clientResp.write(new JSONObject()
                     .put("message", "There is already an app with that ID")
                     .toString(4));
                 return;
@@ -103,16 +99,8 @@ public class CreateAppHandler implements RouteHandler {
                             " there are more runners. Error was " + e.getClass().getName() + " " + e.getMessage());
                         continue;
                     }
-                    response.status(creationResp.getStatus());
-                    response.headers().remove(HeaderNames.DATE);
-
-                    Set<String> hopHeaders = ReverseProxy.HOP_BY_HOP_HEADERS;
-                    for (HttpField header : creationResp.getHeaders()) {
-                        String hn = header.getName().toLowerCase();
-                        if (!hopHeaders.contains(hn) && !hn.equals("content-encoding") && !hn.equals("content-length")) {
-                            response.headers().add(header.getName(), header.getValue());
-                        }
-                    }
+                    clientResp.status(creationResp.getStatus());
+                    clientResp.headers().add("Content-Type", creationResp.getHeaders().get("Content-Type"));
                     if (creationResp.getStatus() == 201) {
                         log.info("Created new app: " + content);
                         JSONObject resp = new JSONObject(content);
@@ -120,13 +108,13 @@ public class CreateAppHandler implements RouteHandler {
                         proxyMap.add(appName, targetAppRunner.resolve("/" + appName));
                     }
                     finished = true;
-                    response.write(content);
+                    clientResp.write(content);
 
                 } else {
                     finished = true;
                     log.error("There are no app runner instances available! Add another instance or change the maxApps value of an existing one.");
-                    response.status(503);
-                    response.write("There are no App Runner instances with free capacity");
+                    clientResp.status(503);
+                    clientResp.write("There are no App Runner instances with free capacity");
                 }
             }
         } catch (Exception e) {
@@ -135,4 +123,5 @@ public class CreateAppHandler implements RouteHandler {
             throw new ServerErrorException("Error while creating app. Error ID=" + errorID, 502);
         }
     }
+
 }
