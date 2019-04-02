@@ -3,11 +3,9 @@ package com.danielflower.apprunner.router.web;
 import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.Runner;
-import io.muserver.HeaderNames;
-import io.muserver.MuRequest;
-import io.muserver.MuResponse;
-import io.muserver.RouteHandler;
+import io.muserver.*;
 import io.muserver.murp.ReverseProxy;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
@@ -33,13 +31,43 @@ public class CreateAppHandler implements RouteHandler {
         this.client = client;
     }
 
+    public static String getNameFromBody(String rawBody) {
+        String name = null;
+        String[] bits = rawBody.split("&");
+        for (String encBit : bits) {
+            String[] nvp = encBit.split("=");
+            if (nvp[0].equals("appName") && nvp.length > 1) {
+                name = Mutils.urlDecode(nvp[1]);
+                break;
+            } else if (nvp[0].equals("gitUrl")) {
+                String temp = StringUtils.removeEndIgnoreCase(StringUtils.removeEnd(Mutils.urlDecode(nvp[1]), "/"), ".git");
+                temp = temp.substring(Math.max(temp.lastIndexOf('/'), temp.lastIndexOf('\\')) + 1);
+                name = temp;
+            }
+        }
+        return name;
+    }
+
     @Override
     public void handle(MuRequest request, MuResponse response, Map<String, String> pathParams) {
         try {
-            log.info("Going to create an app");
+
 
             List<String> excludedRunnerIDs = new ArrayList<>(request.headers().getAll("X-Excluded-Runner"));
             String createBody = request.readBodyAsString();
+
+            String nameFromBody = getNameFromBody(createBody);
+            if (proxyMap.get(nameFromBody) != null) {
+                log.info("Was asked to create " + nameFromBody + " but it is already an existing app");
+                response.status(409);
+                response.contentType(ContentTypes.APPLICATION_JSON);
+                response.write(new JSONObject()
+                    .put("message", "There is already an app with that ID")
+                    .toString(4));
+                return;
+            }
+
+            log.info("Going to create " + nameFromBody);
 
             boolean finished = false;
             while (!finished) {
@@ -52,12 +80,16 @@ public class CreateAppHandler implements RouteHandler {
                     ReverseProxy.setRequestHeaders(request, creationReq, false, true, "HTTP/1.1 " + App.VIA_VALUE);
                     creationReq.header("accept", "*/*"); // for old apprunner instances
 
+                    log.info("Sending " + creationReq.getMethod() + " " + creationReq.getURI() + " with " + creationReq.getHeaders() + " and body " + createBody);
+
                     ContentResponse creationResp;
+                    String content;
                     try {
                         creationResp = creationReq.send();
+                        content = creationResp.getContentAsString();
+                        log.info("Received " + creationResp.getStatus() + " with headers " + creationResp.getHeaders() + " and content " + content);
                         if ((creationResp.getStatus() / 100) == 5) {
-                            String contentAsString = creationResp.getContentAsString();
-                            throw new RuntimeException("Got a " + creationResp.getStatus() + " response - " + contentAsString);
+                            throw new RuntimeException("Got a " + creationResp.getStatus() + " response - " + content);
                         }
                         log.info("Proxying app creation with " + creationResp);
 
@@ -76,11 +108,10 @@ public class CreateAppHandler implements RouteHandler {
                     Set<String> hopHeaders = ReverseProxy.HOP_BY_HOP_HEADERS;
                     for (HttpField header : creationResp.getHeaders()) {
                         String hn = header.getName().toLowerCase();
-                        if (!hopHeaders.contains(hn) && !hn.equals("content-encoding")) {
+                        if (!hopHeaders.contains(hn) && !hn.equals("content-encoding") && !hn.equals("content-length")) {
                             response.headers().add(header.getName(), header.getValue());
                         }
                     }
-                    String content = creationResp.getContentAsString();
                     if (creationResp.getStatus() == 201) {
                         log.info("Created new app: " + content);
                         JSONObject resp = new JSONObject(content);

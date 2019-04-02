@@ -192,6 +192,10 @@ public class RoutingTest {
 
         ContentResponse app1Creation = client.createApp(app1.gitUrl(), "app1");
         assertThat("Error returned: " + app1Creation.getContentAsString(), app1Creation.getStatus(), is(201));
+
+        ContentResponse app1DuplicateCreation = client.createApp(app1.gitUrl(), "app1");
+        assertThat("Body returned: " + app1DuplicateCreation.getContentAsString(), app1DuplicateCreation.getStatus(), is(409));
+
         JSONObject app1Json = new JSONObject(app1Creation.getContentAsString());
         assertThat(app1Json.getString("url"), startsWith(client.routerUrl));
 
