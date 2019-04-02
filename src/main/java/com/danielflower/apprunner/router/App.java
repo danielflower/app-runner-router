@@ -66,13 +66,10 @@ public class App {
 
         int idleTimeout = config.getInt("apprunner.proxy.idle.timeout", 30000);
 
-        HttpClient httpClient = HttpClientBuilder.httpClient()
-            .withIdleTimeoutMillis(idleTimeout)
-            .withMaxConnectionsPerDestination(256)
-            .withSslContextFactory(new SslContextFactory(allowUntrustedInstances))
-            .build();
+        HttpClient standardHttpClient = new HttpClient(new SslContextFactory(allowUntrustedInstances));
+        standardHttpClient.start();
 
-        MapManager mapManager = new ClusterQueryingMapManager(proxyMap, httpClient);
+        MapManager mapManager = new ClusterQueryingMapManager(proxyMap, standardHttpClient);
         Cluster cluster = Cluster.load(new File(dataDir, "cluster.json"), mapManager);
         mapManager.loadAllApps(null, cluster.getRunners());
         cluster.refreshRunnerCountCache(mapManager.getCurrentMapping());
@@ -97,10 +94,10 @@ public class App {
                 .addHandler(Method.GET, "/apps", appsCallAggregator)
                 .addHandler(Method.HEAD, "/apps", appsCallAggregator)
                 .addHandler(Method.OPTIONS, "/apps", (request, response, pathParams) -> response.headers().set(HeaderNames.ALLOW, "GET, POST, HEAD, OPTIONS"))
-                .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, cluster, httpClient))
+                .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, cluster, standardHttpClient))
                 .addHandler(restHandler()
                     .addResource(new RunnerResource(cluster, mapManager))
-                    .addResource(new SystemResource(systemInfo, cluster, httpClient))
+                    .addResource(new SystemResource(systemInfo, cluster, standardHttpClient))
                     .withCORS(corsConfig)
                     .withOpenApiJsonUrl("/router-openapi.json")
                     .withOpenApiHtmlUrl("/router-api.html")
@@ -113,7 +110,11 @@ public class App {
                 .discardClientForwardedHeaders(discardClientFowarded)
                 .withUriMapper(reverseProxyManager)
                 .addProxyCompleteListener(reverseProxyManager)
-                .withHttpClient(httpClient)
+                .withHttpClient(HttpClientBuilder.httpClient()
+                    .withIdleTimeoutMillis(idleTimeout)
+                    .withMaxConnectionsPerDestination(256)
+                    .withSslContextFactory(new SslContextFactory(allowUntrustedInstances))
+                    .build())
             )
             .start();
 

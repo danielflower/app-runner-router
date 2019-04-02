@@ -77,8 +77,9 @@ public class CreateAppHandler implements RouteHandler {
                     org.eclipse.jetty.client.api.Request creationReq = client.POST(targetAppRunner)
                         .content(new StringContentProvider(createBody));
 
-                    ReverseProxy.setRequestHeaders(request, creationReq, false, true, "HTTP/1.1 " + App.VIA_VALUE);
-                    creationReq.header("accept", "*/*"); // for old apprunner instances
+                    ReverseProxy.setForwardedHeaders(request, creationReq, false, true);
+                    creationReq.header("Accept", "*/*"); // for old apprunner instances
+                    creationReq.header("Content-Type", request.headers().get("Content-Type"));
 
                     log.info("Sending " + creationReq.getMethod() + " " + creationReq.getURI() + " with " + creationReq.getHeaders() + " and body " + createBody);
 
