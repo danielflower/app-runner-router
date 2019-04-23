@@ -9,10 +9,7 @@ import com.danielflower.apprunner.router.monitoring.BlockingUdpSender;
 import com.danielflower.apprunner.router.web.*;
 import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
-import io.muserver.HeaderNames;
-import io.muserver.Method;
-import io.muserver.MuServer;
-import io.muserver.SSLContextBuilder;
+import io.muserver.*;
 import io.muserver.murp.HttpClientBuilder;
 import io.muserver.rest.CORSConfig;
 import org.eclipse.jetty.client.HttpClient;
@@ -84,10 +81,12 @@ public class App {
             .build();
         AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
 
+        Toggles.http2 = config.getBoolean("apprunner.enable.http2", false);
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
+            .withMaxHeadersSize(16 * 1024)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
             .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
             .addHandler(context("/api/v1")
