@@ -59,6 +59,7 @@ public class RunLocal {
 
         int routerPort = 8443;
         Map<String, String> env = new HashMap<>(System.getenv());
+        env.put("apprunner.enable.http2", "True");
         env.put("appserver.https.port", String.valueOf(routerPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
         env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));

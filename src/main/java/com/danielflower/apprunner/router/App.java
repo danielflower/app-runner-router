@@ -82,11 +82,12 @@ public class App {
         AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
 
         Toggles.http2 = config.getBoolean("apprunner.enable.http2", false);
+        int maxHeadersSize = 24 * 1024;
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
-            .withMaxHeadersSize(16 * 1024)
+            .withMaxHeadersSize(maxHeadersSize)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
             .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
             .addHandler(context("/api/v1")
@@ -111,6 +112,7 @@ public class App {
                 .addProxyCompleteListener(reverseProxyManager)
                 .withHttpClient(HttpClientBuilder.httpClient()
                     .withIdleTimeoutMillis(idleTimeout)
+                    .withMaxRequestHeadersSize(maxHeadersSize)
                     .withMaxConnectionsPerDestination(256)
                     .withSslContextFactory(new SslContextFactory(allowUntrustedInstances))
                     .build())
