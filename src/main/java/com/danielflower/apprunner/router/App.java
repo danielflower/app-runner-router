@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 
 import static io.muserver.ContextHandlerBuilder.context;
+import static io.muserver.Http2ConfigBuilder.http2Config;
 import static io.muserver.MuServerBuilder.muServer;
 import static io.muserver.murp.ReverseProxyBuilder.reverseProxy;
 import static io.muserver.rest.CORSConfigBuilder.corsConfig;
@@ -81,12 +82,12 @@ public class App {
             .build();
         AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
 
-        Toggles.http2 = config.getBoolean("apprunner.enable.http2", false);
         int maxHeadersSize = 24 * 1024;
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
+            .withHttp2Config(http2Config().enabled(config.getBoolean("apprunner.enable.http2", false)))
             .withMaxHeadersSize(maxHeadersSize)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
             .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
