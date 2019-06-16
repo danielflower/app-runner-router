@@ -88,7 +88,7 @@ public class App {
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
-            .withIdleTimeout(idleTimeout, TimeUnit.MILLISECONDS)
+            .withIdleTimeout(idleTimeout + 5000 /* let the proxy timeout first */, TimeUnit.MILLISECONDS)
             .withHttp2Config(http2Config().enabled(config.getBoolean("apprunner.enable.http2", false)))
             .withMaxHeadersSize(maxHeadersSize)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
