@@ -71,6 +71,7 @@ public class RunnerResource {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response create(@Context MuRequest clientRequest,
                            @Context UriInfo uriInfo,
                            @FormParam("id") String id,
@@ -111,6 +112,7 @@ public class RunnerResource {
     @PUT
     @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public Response update(@Context MuRequest clientRequest,
                            @Context UriInfo uriInfo,
                            @PathParam("id") String id,
