@@ -77,6 +77,15 @@ public class Config {
         }
     }
 
+    public long getLong(String name, long defaultValue) {
+        String s = get(name, String.valueOf(defaultValue));
+        try {
+            return Long.parseLong(s, 10);
+        } catch (NumberFormatException e) {
+            throw new InvalidConfigException("Could not convert " + name + "=" + s + " to an integer");
+        }
+    }
+
     public File getFile(String name) {
         File f = new File(get(name));
         if (!f.isFile()) {

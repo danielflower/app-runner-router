@@ -83,11 +83,14 @@ public class App {
             .build();
         AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
 
+        long maxRequestSize = config.getLong("apprunner.request.max.size.bytes", 500 * 1024 * 1024L);
+
         int maxHeadersSize = 24 * 1024;
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
             .withHttpsConfig(sslContext)
+            .withMaxRequestSize(maxRequestSize)
             .withIdleTimeout(idleTimeout + 5000 /* let the proxy timeout first */, TimeUnit.MILLISECONDS)
             .withHttp2Config(http2Config().enabled(config.getBoolean("apprunner.enable.http2", false)))
             .withMaxHeadersSize(maxHeadersSize)
