@@ -100,7 +100,7 @@ public class App {
                 .addHandler(Method.GET, "/apps", appsCallAggregator)
                 .addHandler(Method.HEAD, "/apps", appsCallAggregator)
                 .addHandler(Method.OPTIONS, "/apps", (request, response, pathParams) -> response.headers().set(HeaderNames.ALLOW, "GET, POST, HEAD, OPTIONS"))
-                .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, cluster, standardHttpClient))
+                .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, mapManager, cluster, standardHttpClient))
                 .addHandler(restHandler()
                     .addResource(new RunnerResource(cluster, mapManager))
                     .addResource(new SystemResource(systemInfo, cluster, standardHttpClient))

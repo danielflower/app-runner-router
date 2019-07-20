@@ -1,6 +1,7 @@
 package com.danielflower.apprunner.router.web;
 
 import com.danielflower.apprunner.router.mgmt.Cluster;
+import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import io.muserver.*;
 import io.muserver.murp.ReverseProxy;
@@ -19,12 +20,14 @@ import java.util.*;
 public class CreateAppHandler implements RouteHandler {
     private static final Logger log = LoggerFactory.getLogger(CreateAppHandler.class);
     private final ProxyMap proxyMap;
+    private final MapManager mapManager;
     private final Cluster cluster;
     private final HttpClient client;
 
 
-    public CreateAppHandler(ProxyMap proxyMap, Cluster cluster, HttpClient client) {
+    public CreateAppHandler(ProxyMap proxyMap, MapManager mapManager, Cluster cluster, HttpClient client) {
         this.proxyMap = proxyMap;
+        this.mapManager = mapManager;
         this.cluster = cluster;
         this.client = client;
     }
@@ -53,6 +56,10 @@ public class CreateAppHandler implements RouteHandler {
             String createBody = request.readBodyAsString();
 
             String nameFromBody = getNameFromBody(createBody);
+
+            // This refreshes the proxyMap's view of which apps are on which runners
+            mapManager.loadAllApps(request, cluster.getRunners());
+
             if (proxyMap.get(nameFromBody) != null) {
                 log.info("Was asked to create " + nameFromBody + " but it is already an existing app");
                 clientResp.status(409);
