@@ -79,6 +79,11 @@ public class ReverseProxyManagerTest {
             }
 
             @Override
+            public long startTime() {
+                return 0;
+            }
+
+            @Override
             public Method method() {
                 return Method.GET;
             }
