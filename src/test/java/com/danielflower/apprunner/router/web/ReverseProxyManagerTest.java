@@ -11,9 +11,11 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -154,7 +156,7 @@ public class ReverseProxyManagerTest {
             }
 
             @Override
-            public Set<Cookie> cookies() {
+            public List<Cookie> cookies() {
                 return null;
             }
 
@@ -194,6 +196,11 @@ public class ReverseProxyManagerTest {
             }
 
             @Override
+            public Map<String, Object> attributes() {
+                return null;
+            }
+
+            @Override
             public AsyncHandle handleAsync() {
                 return null;
             }
@@ -215,6 +222,11 @@ public class ReverseProxyManagerTest {
 
             @Override
             public String protocol() {
+                return null;
+            }
+
+            @Override
+            public HttpConnection connection() {
                 return null;
             }
         };
