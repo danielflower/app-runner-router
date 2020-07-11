@@ -15,6 +15,8 @@ public interface MapManager {
 
     JSONObject loadRunner(MuRequest clientRequest, Runner runner) throws Exception;
 
+    JSONObject loadRunnerSystemInfo(MuRequest clientRequest, Runner runner) throws Exception;
+
     void removeRunner(Runner runner);
 
     class Result {

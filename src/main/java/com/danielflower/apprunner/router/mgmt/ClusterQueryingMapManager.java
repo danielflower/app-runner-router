@@ -61,6 +61,31 @@ public class ClusterQueryingMapManager implements MapManager {
     @Override
     public JSONObject loadRunner(MuRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/apps");
+        JSONObject info = getJSONResponse(clientRequest, uri);
+        List<String> addedNames = new ArrayList<>();
+        for (Object app : info.getJSONArray("apps")) {
+            String name = ((JSONObject) app).getString("name");
+            addedNames.add(name);
+            proxyMap.add(name, uri.resolve("/" + name));
+        }
+        for (Map.Entry<String, URI> entry : proxyMap.getAll().entrySet()) {
+            if (entry.getValue().getAuthority().equals(runner.url.getAuthority())
+                && !addedNames.contains(entry.getKey())) {
+                log.info("Detected a missing app, so will remove it from the proxy map: " + entry.getKey() + " at " + entry.getValue());
+                proxyMap.remove(entry.getKey());
+            }
+        }
+        return info;
+    }
+
+    @Override
+    public JSONObject loadRunnerSystemInfo(MuRequest clientRequest, Runner runner) throws Exception {
+        URI uri = runner.url.resolve("/api/v1/system");
+        return getJSONResponse(clientRequest, uri);
+    }
+
+
+    private JSONObject getJSONResponse(MuRequest clientRequest, URI uri) throws InterruptedException, ExecutionException, TimeoutException {
         ContentResponse resp;
         try {
             Request request = httpClient.newRequest(uri)
@@ -77,21 +102,7 @@ public class ClusterQueryingMapManager implements MapManager {
         if (resp.getStatus() != 200) {
             throw new RuntimeException("Unable to load apps from " + uri + " - message was " + resp.getContentAsString());
         }
-        JSONObject info = new JSONObject(resp.getContentAsString());
-        List<String> addedNames = new ArrayList<>();
-        for (Object app : info.getJSONArray("apps")) {
-            String name = ((JSONObject) app).getString("name");
-            addedNames.add(name);
-            proxyMap.add(name, uri.resolve("/" + name));
-        }
-        for (Map.Entry<String, URI> entry : proxyMap.getAll().entrySet()) {
-            if (entry.getValue().getAuthority().equals(runner.url.getAuthority())
-                && !addedNames.contains(entry.getKey())) {
-                log.info("Detected a missing app, so will remove it from the proxy map: " + entry.getKey() + " at " + entry.getValue());
-                proxyMap.remove(entry.getKey());
-            }
-        }
-        return info;
+        return new JSONObject(resp.getContentAsString());
     }
 
 

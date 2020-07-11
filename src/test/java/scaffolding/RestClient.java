@@ -9,6 +9,8 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import java.net.URI;
 import java.net.URLEncoder;
 
+import static io.muserver.Mutils.urlEncode;
+
 public class RestClient {
 
     public static final HttpClient client;
@@ -114,15 +116,18 @@ public class RestClient {
     }
 
     public ContentResponse getRunner(String id) throws Exception {
-        return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8"));
+        return get("/api/v1/runners/" + urlEncode(id));
     }
 
     public ContentResponse getRunnerApps(String id) throws Exception {
-        return get("/api/v1/runners/" + URLEncoder.encode(id, "UTF-8") + "/apps");
+        return get("/api/v1/runners/" + urlEncode(id) + "/apps");
+    }
+
+    public ContentResponse getRunnerSystem(String id) throws Exception {
+        return get("/api/v1/runners/" + urlEncode(id) + "/system");
     }
 
     public ContentResponse deleteRunner(String id) throws Exception {
         return client.newRequest(routerUrl + "/api/v1/runners/" + URLEncoder.encode(id, "UTF-8")).method("DELETE").send();
     }
-
 }

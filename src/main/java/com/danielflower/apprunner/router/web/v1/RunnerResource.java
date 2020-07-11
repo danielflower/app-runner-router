@@ -55,17 +55,37 @@ public class RunnerResource {
     @Path("/{id}/apps")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getRunnerApps(@Context MuRequest clientRequest, @PathParam("id") String id) {
-        Optional<Runner> app = cluster.runner(id);
-        if (!app.isPresent()) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
+        Runner runner = getRunner(id);
         try {
-            JSONObject appsJSON = mapManager.loadRunner(clientRequest, app.get());
+            JSONObject appsJSON = mapManager.loadRunner(clientRequest, runner);
             return Response.ok(appsJSON.toString(4)).build();
         } catch (Exception e) {
             log.error("Error while getting apps for " + id, e);
             return Response.serverError().entity(e.getMessage()).build();
         }
+    }
+
+    @GET
+    @Path("/{id}/system")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getRunnerSystem(@Context MuRequest clientRequest, @PathParam("id") String id) {
+        Runner runner = getRunner(id);
+        try {
+            JSONObject appsJSON = mapManager.loadRunnerSystemInfo(clientRequest, runner);
+            return Response.ok(appsJSON.toString(4)).build();
+        } catch (Exception e) {
+            log.error("Error while getting system info for " + id, e);
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+    }
+
+
+    private Runner getRunner(@PathParam("id") String id) {
+        Optional<Runner> app = cluster.runner(id);
+        if (!app.isPresent()) {
+            throw new NotFoundException("No runner with that ID");
+        }
+        return app.get();
     }
 
 
