@@ -132,7 +132,7 @@ public class RoutingTest {
         assertThat(headersFromOne.indexOf(";proto=https\r\n"), Matchers.lessThan(headersFromOne.lastIndexOf(";proto=http\r\n")));
 
         assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\n"));
-        assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\nX-Forwarded-Proto:https\r\n"));
+        assertThat(asList(headersFromTwo.split("X-Forwarded-Proto:https\r\n")), hasSize(3));
         assertThat(headersFromOne, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
         assertThat(headersFromTwo, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
 

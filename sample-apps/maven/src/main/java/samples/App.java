@@ -1,20 +1,13 @@
 package samples;
 
-import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.*;
-import org.eclipse.jetty.util.resource.Resource;
-
-import javax.servlet.*;
-import javax.servlet.http.*;
-import java.io.IOException;
-import java.io.PrintWriter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-import java.util.Enumeration;
-import java.util.Map;
+import java.util.*;
+import java.io.*;
+
+import io.muserver.*;
+import io.muserver.handlers.*;
 
 public class App {
     public static final Logger log = LoggerFactory.getLogger(App.class);
@@ -30,77 +23,32 @@ public class App {
         boolean isLocal = "local".equals(env);
         log.info("Starting " + appName + " in " + env + " on port " + port);
 
-        Server jettyServer = new Server(new InetSocketAddress("localhost", port));
-        jettyServer.setStopAtShutdown(true);
-
-        HandlerList handlers = new HandlerList();
-        handlers.addHandler(new AbstractHandler() {
-            @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-                if (target.equalsIgnoreCase("/slow")) {
-                    try {
-                        Thread.sleep(Long.parseLong(request.getParameter("millis")));
-                    } catch (InterruptedException e) {
-                        Thread.interrupted();
-                    }
-                    try (PrintWriter writer = response.getWriter()) {
-                        writer.append("This was slow");
-                    }
-                    baseRequest.setHandled(true);
-                }
-            }
-        });
-        handlers.addHandler(new AbstractHandler() {
-            @Override
-            public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-                if (target.equals("/headers")) {
-                    response.setContentType("text/plain");
-                    try (PrintWriter writer = response.getWriter()) {
-                        Enumeration<String> headerNames = request.getHeaderNames();
-                        while (headerNames.hasMoreElements()) {
-                            String name = headerNames.nextElement();
-                            Enumeration<String> values = request.getHeaders(name);
-                            while (values.hasMoreElements()) {
-                                String value = values.nextElement();
-                                writer.append(name).append(":").append(value).append("\r\n");
+        MuServer server = MuServerBuilder.muServer()
+            .withHttpPort(port)
+            .addHandler(
+                ContextHandlerBuilder.context(appName)
+                    .addHandler(Method.GET, "/slow", (req, resp, pp) -> {
+                        try {
+                            Thread.sleep(Long.parseLong(req.query().get("millis")));
+                        } catch (InterruptedException e) {
+                            Thread.interrupted();
+                        }
+                        resp.write("This was slow");
+                    })
+                    .addHandler(Method.GET, "/headers", (req, resp, pp) -> {
+                        resp.contentType("text/plain;charset=utf-8");
+                        try (PrintWriter writer = resp.writer()) {
+                            for (Map.Entry<String, String> header : req.headers()) {
+                                writer.append(header.getKey()).append(":").append(header.getValue()).append("\r\n");
                             }
                         }
+                    })
+                    .addHandler(ResourceHandlerBuilder.classpathHandler("/web"))
+            )
+            .addShutdownHook(true)
+            .start();
 
-                    }
-                    baseRequest.setHandled(true);
-                }
-            }
-        });
-        handlers.addHandler(resourceHandler(isLocal));
-
-        // you must serve everything from a directory named after your app
-        ContextHandler ch = new ContextHandler();
-        ch.setContextPath("/" + appName);
-        ch.setHandler(handlers);
-        jettyServer.setHandler(ch);
-
-        try {
-            jettyServer.start();
-        } catch (Throwable e) {
-            log.error("Error on start", e);
-            System.exit(1);
-        }
-
-        log.info("Started app at http://localhost:" + port + ch.getContextPath());
-        jettyServer.join();
-    }
-
-    private static Handler resourceHandler(boolean useFileSystem) {
-        ResourceHandler resourceHandler = new ResourceHandler();
-        if (useFileSystem) {
-            resourceHandler.setResourceBase("src/main/resources/web");
-            resourceHandler.setMinMemoryMappedContentLength(-1);
-        } else {
-            resourceHandler.setBaseResource(Resource.newClassPathResource("/web", true, false));
-        }
-        resourceHandler.setEtags(true);
-        resourceHandler.setWelcomeFiles(new String[]{"index.html"});
-        return resourceHandler;
+        log.info("Started app at " + server.uri().resolve("/" + appName));
     }
 
 }

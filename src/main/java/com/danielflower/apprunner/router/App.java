@@ -49,9 +49,9 @@ public class App {
 
         int httpPort = config.getInt(Config.SERVER_HTTP_PORT, -1);
         int httpsPort = config.getInt(Config.SERVER_HTTPS_PORT, -1);
-        SSLContextBuilder sslContext = null;
+        HttpsConfigBuilder httpsConfigBuilder = null;
         if (httpsPort > -1) {
-            sslContext = SSLContextBuilder.sslContext()
+            httpsConfigBuilder = HttpsConfigBuilder.httpsConfig()
                 .withKeystore(config.getFile("apprunner.keystore.path"))
                 .withKeystorePassword(config.get("apprunner.keystore.password"))
                 .withKeyPassword(config.get("apprunner.keymanager.password"))
@@ -61,11 +61,11 @@ public class App {
         boolean discardClientFowarded = config.getBoolean("apprunner.proxy.discard.client.forwarded.headers", false);
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
-        boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", false);
+        boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", true);
 
         int idleTimeout = config.getInt("apprunner.proxy.idle.timeout", 30000);
 
-        HttpClient standardHttpClient = new HttpClient(new SslContextFactory(allowUntrustedInstances));
+        HttpClient standardHttpClient = new HttpClient(new SslContextFactory.Client(allowUntrustedInstances));
         standardHttpClient.start();
 
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, standardHttpClient);
@@ -89,7 +89,7 @@ public class App {
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
-            .withHttpsConfig(sslContext)
+            .withHttpsConfig(httpsConfigBuilder)
             .withMaxRequestSize(maxRequestSize)
             .withIdleTimeout(idleTimeout + 5000 /* let the proxy timeout first */, TimeUnit.MILLISECONDS)
             .withHttp2Config(http2Config().enabled(config.getBoolean("apprunner.enable.http2", false)))
@@ -119,8 +119,8 @@ public class App {
                 .withHttpClient(HttpClientBuilder.httpClient()
                     .withIdleTimeoutMillis(idleTimeout)
                     .withMaxRequestHeadersSize(maxHeadersSize)
-                    .withMaxConnectionsPerDestination(256)
-                    .withSslContextFactory(new SslContextFactory(allowUntrustedInstances))
+                    .withMaxConnectionsPerDestination(1024)
+                    .withSslContextFactory(new SslContextFactory.Client(allowUntrustedInstances))
                     .build())
             )
             .start();
