@@ -1,9 +1,6 @@
 package com.danielflower.apprunner.router;
 
-import com.danielflower.apprunner.router.mgmt.Cluster;
-import com.danielflower.apprunner.router.mgmt.ClusterQueryingMapManager;
-import com.danielflower.apprunner.router.mgmt.MapManager;
-import com.danielflower.apprunner.router.mgmt.SystemInfo;
+import com.danielflower.apprunner.router.mgmt.*;
 import com.danielflower.apprunner.router.monitoring.AppRequestListener;
 import com.danielflower.apprunner.router.monitoring.BlockingUdpSender;
 import com.danielflower.apprunner.router.web.*;
@@ -11,14 +8,19 @@ import com.danielflower.apprunner.router.web.v1.RunnerResource;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
 import io.muserver.*;
 import io.muserver.murp.HttpClientBuilder;
+import io.muserver.murp.ReverseProxyBuilder;
 import io.muserver.rest.CORSConfig;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.NotFoundException;
 import java.io.File;
+import java.net.URI;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.muserver.ContextHandlerBuilder.context;
 import static io.muserver.Http2ConfigBuilder.http2Config;
@@ -86,6 +88,12 @@ public class App {
         long maxRequestSize = config.getLong("apprunner.request.max.size.bytes", 500 * 1024 * 1024L);
 
         int maxHeadersSize = 24 * 1024;
+        HttpClient rpHttpClient = HttpClientBuilder.httpClient()
+            .withIdleTimeoutMillis(idleTimeout)
+            .withMaxRequestHeadersSize(maxHeadersSize)
+            .withMaxConnectionsPerDestination(1024)
+            .withSslContextFactory(new SslContextFactory.Client(allowUntrustedInstances))
+            .build();
         muServer = muServer()
             .withHttpPort(httpPort)
             .withHttpsPort(httpsPort)
@@ -108,6 +116,34 @@ public class App {
                     .withOpenApiJsonUrl("/router-openapi.json")
                     .withOpenApiHtmlUrl("/router-api.html")
                 )
+                .addHandler(context("runner-proxy")
+                    .addHandler(new ReverseProxyBuilder()
+                        .withUriMapper(req -> {
+                            Pattern proxyPattern = Pattern.compile("/(?<id>[^/]+)(/(?<targetPath>.*))?");
+                            Matcher matcher = proxyPattern.matcher(req.relativePath());
+                            if (matcher.matches()) {
+                                String runnerId = matcher.group("id");
+                                Runner runner = cluster.runner(runnerId)
+                                    .orElseThrow(() -> new NotFoundException("No runner with that ID exists"));
+                                String rel = matcher.groupCount() == 1 ? "/" : matcher.group("targetPath");
+                                String qs = req.uri().getRawQuery();
+                                if (!Mutils.nullOrEmpty(qs)) {
+                                    rel += "?" + qs;
+                                }
+                                URI target = runner.url.resolve(rel);
+                                log.info("Proxying to runner " + runnerId + ": " + target);
+                                return target;
+                            } else {
+                                return null;
+                            }
+                        })
+                        .withTotalTimeout(totalTimeout)
+                        .withViaName(VIA_VALUE)
+                        .sendLegacyForwardedHeaders(true)
+                        .discardClientForwardedHeaders(discardClientFowarded)
+                        .withHttpClient(rpHttpClient)
+                        .build())
+                )
             )
             .addHandler(reverseProxy()
                 .withTotalTimeout(totalTimeout)
@@ -116,12 +152,7 @@ public class App {
                 .discardClientForwardedHeaders(discardClientFowarded)
                 .withUriMapper(reverseProxyManager)
                 .addProxyCompleteListener(reverseProxyManager)
-                .withHttpClient(HttpClientBuilder.httpClient()
-                    .withIdleTimeoutMillis(idleTimeout)
-                    .withMaxRequestHeadersSize(maxHeadersSize)
-                    .withMaxConnectionsPerDestination(1024)
-                    .withSslContextFactory(new SslContextFactory.Client(allowUntrustedInstances))
-                    .build())
+                .withHttpClient(rpHttpClient)
             )
             .start();
 

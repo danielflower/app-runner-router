@@ -40,6 +40,8 @@ public class RoutingTest {
     private RestClient httpClient;
     private Map<String, String> env;
     private RestClient httpsClient;
+    private RestClient proxyToOldClient;
+    private RestClient proxyToLatestWithoutNodeClient;
 
     @BeforeClass
     public static void createRunners() {
@@ -67,6 +69,8 @@ public class RoutingTest {
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
         httpsClient = RestClient.create("https://" + host + ":" + routerHttpsPort);
+        proxyToLatestWithoutNodeClient = RestClient.create("https://" + host + ":" + routerHttpsPort + "/api/v1/runner-proxy/" + latestAppRunnerWithoutNode.id());
+        proxyToOldClient = RestClient.create("https://" + host + ":" + routerHttpsPort + "/api/v1/runner-proxy/" + oldAppRunner.id());
     }
 
     @After
@@ -408,6 +412,28 @@ public class RoutingTest {
         assertThat(ids, hasItem(CoreMatchers.equalTo("maven")));
         assertThat(ids, hasItem(CoreMatchers.equalTo("nodejs")));
         assertThat("Number of sample apps", samples.length(), CoreMatchers.equalTo(ids.size()));
+    }
+
+    @Test
+    public void runnerProxyCanTalkDirectlyToInstances() throws Exception {
+        httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 10);
+        httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 10);
+
+        AppRepo app1 = AppRepo.create("maven");
+
+        String appName = "runner-proxied-app";
+        assertThat(proxyToLatestWithoutNodeClient.createApp(app1.gitUrl(), appName), equalTo(201, containsString(appName)));
+        assertThat(proxyToLatestWithoutNodeClient.createApp(app1.gitUrl(), appName), equalTo(409, containsString("already an app")));
+        assertThat(httpClient.createApp(app1.gitUrl(), appName), equalTo(409, containsString("already an app")));
+        assertThat(proxyToOldClient.createApp(app1.gitUrl(), appName), equalTo(201, containsString(appName)));
+
+        proxyToLatestWithoutNodeClient.deploy(appName);
+        Waiter.waitForApp(httpClient.targetURI(), appName);
+
+        assertThat(proxyToLatestWithoutNodeClient.get("/" + appName + "/"), equalTo(200, containsString("Hello!")));
+
+        assertThat(proxyToLatestWithoutNodeClient.deleteApp(appName), equalTo(200, containsString(appName)));
+        assertThat(proxyToOldClient.deleteApp(appName), equalTo(200, containsString(appName)));
     }
 
 }

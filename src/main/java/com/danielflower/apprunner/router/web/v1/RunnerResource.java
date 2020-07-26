@@ -4,6 +4,7 @@ import com.danielflower.apprunner.router.mgmt.Cluster;
 import com.danielflower.apprunner.router.mgmt.MapManager;
 import com.danielflower.apprunner.router.mgmt.Runner;
 import io.muserver.MuRequest;
+import io.muserver.rest.Description;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,13 @@ import java.util.Optional;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Path("/runners")
+@Description(value = "Runners", details = "This resource allows you to add, remove, and get all the AppRunner instances " +
+    "that are registered with this router. It also provides a couple of endpoints that let you query data on a specific" +
+    " runner directly. Note that in the normal case, requests against the router to `/api/v1/apps` are made without needing " +
+    "to worry about which runner will service the request. However if you want to target endpoints on a specific runner " +
+    "you can prefix any URL available on the runner with `/api/v1/runner-proxy/{runnerId}`. For example, to add an app " +
+    "to a runner with the ID `myspecialrunner` you can `POST` to `/api/v1/runner-proxy/myspecialrunner/api/v1/apps` and " +
+    "it will bypass the usual router processing.")
 public class RunnerResource {
     public static final Logger log = LoggerFactory.getLogger(RunnerResource.class);
 

@@ -3,6 +3,7 @@ package scaffolding;
 import com.danielflower.apprunner.router.problems.AppRunnerException;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FilenameUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,10 +98,16 @@ public class AppRunnerInstance {
 
     public void clearApps() throws Exception {
         RestClient client = RestClient.create(httpUrl().toString());
-        JSONObject apps = new JSONObject(client.get("/api/v1/apps").getContentAsString());
-        for (Object o : apps.getJSONArray("apps")) {
-            JSONObject app = (JSONObject) o;
-            client.deleteApp(app.getString("name"));
+        while (true) {
+            JSONArray apps = new JSONObject(client.get("/api/v1/apps").getContentAsString())
+                .getJSONArray("apps");
+            if (apps.isEmpty()) {
+                break;
+            }
+            for (Object o : apps) {
+                JSONObject app = (JSONObject) o;
+                client.deleteApp(app.getString("name"));
+            }
         }
     }
 }
