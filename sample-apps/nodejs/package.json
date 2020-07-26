@@ -1,0 +1,13 @@
+{
+  "name": "nodeapp",
+  "version": "1.0.0",
+  "description": "Sample node app",
+  "scripts": {
+    "start": "",
+    "test": "echo \"No test specified\""
+  },
+  "dependencies": {
+    "express": "4.16.4"
+  },
+  "private": true
+}

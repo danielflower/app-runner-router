@@ -264,6 +264,14 @@ public class RoutingTest {
     }
 
     @Test
+    public void ifNotSupportedByAllRunnersThenThatIsReturned() throws Exception {
+        httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 10);
+        AppRepo nodeApp = AppRepo.create("nodejs");
+        assertThat(httpClient.createApp(nodeApp.gitUrl(), "app1"),
+            equalTo(501, containsString("No suitable runner found for this app")));
+    }
+
+    @Test
     public void canAddAppsEvenIfSomeRunnersNotRunning() throws Exception {
         AppRunnerInstance stoppedOne = AppRunnerInstance.latest("will-stop").start();
         httpClient.registerRunner(stoppedOne.id(), stoppedOne.httpUrl(), 20);
