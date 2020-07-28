@@ -173,8 +173,6 @@ public class RoutingTest {
         appsCanBeAddedToTheRouterAndItWillDistributeThoseToTheRunners(httpsClient, latestAppRunnerWithoutNode, oldAppRunner);
     }
 
-
-
     @Test
     public void slowRequestsTimeOut() throws Exception {
         httpsClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpsUrl(), 1);
@@ -271,8 +269,12 @@ public class RoutingTest {
     public void ifNotSupportedByAllRunnersThenThatIsReturned() throws Exception {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 10);
         AppRepo nodeApp = AppRepo.create("nodejs");
-        assertThat(httpClient.createApp(nodeApp.gitUrl(), "app1"),
+        assertThat(httpClient.createApp(nodeApp.gitUrl(), "not-supported"),
             equalTo(501, containsString("No suitable runner found for this app")));
+
+        AppRepo mavenVersion = AppRepo.create("maven");
+        assertThat(httpClient.createApp(mavenVersion.gitUrl(), "not-supported"),
+            equalTo(201, containsString("not-supported")));
     }
 
     @Test
