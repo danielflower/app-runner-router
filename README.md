@@ -29,6 +29,10 @@ app-runner instance. In general, it will simply proxy requests to the correct in
 of exemptions: `GET /api/v1/apps` returns an aggregation of all apps across all instances, and
 `POST /api/v1/apps` will first pick an instance to create the app in, and send it there.
 
+The router can also proxy direct to instances via the `/api/v1/runner-proxy/{runnerid}` endpoint.
+For example, if you have a runner with the ID `myrunner` on `https://myrunner.example/` then a call
+to `/api/v1/runner-proxy/myrunner/api/v1/system` will get proxied to `https://myrunner.example/api/v1/system`
+
 ### Running locally
 
 Clone the repo and then run `mvn compile`, and then run the main method in `RunLocal.java`

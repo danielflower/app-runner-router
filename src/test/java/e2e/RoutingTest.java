@@ -4,6 +4,7 @@ import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.web.v1.SystemResource;
+import io.muserver.Mutils;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
@@ -432,7 +433,8 @@ public class RoutingTest {
         proxyToLatestWithoutNodeClient.deploy(appName);
         Waiter.waitForApp(httpClient.targetURI(), appName);
 
-        assertThat(proxyToLatestWithoutNodeClient.get("/" + appName + "/"), equalTo(200, containsString("Hello!")));
+        assertThat(proxyToLatestWithoutNodeClient.get("/" + appName + "/headers?some-query=" + Mutils.urlEncode("hi: : / & \\ < >")),
+            equalTo(200, startsWith("some-query: hi: : / & \\ < >")));
 
         assertThat(proxyToLatestWithoutNodeClient.deleteApp(appName), equalTo(200, containsString(appName)));
         assertThat(proxyToOldClient.deleteApp(appName), equalTo(200, containsString(appName)));

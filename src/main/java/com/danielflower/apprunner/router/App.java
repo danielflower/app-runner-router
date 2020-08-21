@@ -88,6 +88,7 @@ public class App {
         long maxRequestSize = config.getLong("apprunner.request.max.size.bytes", 500 * 1024 * 1024L);
 
         int maxHeadersSize = 24 * 1024;
+        Pattern proxyPattern = Pattern.compile("/(?<id>[^/]+)(/(?<targetPath>.*))?");
         HttpClient rpHttpClient = HttpClientBuilder.httpClient()
             .withIdleTimeoutMillis(idleTimeout)
             .withMaxRequestHeadersSize(maxHeadersSize)
@@ -119,13 +120,12 @@ public class App {
                 .addHandler(context("runner-proxy")
                     .addHandler(new ReverseProxyBuilder()
                         .withUriMapper(req -> {
-                            Pattern proxyPattern = Pattern.compile("/(?<id>[^/]+)(/(?<targetPath>.*))?");
                             Matcher matcher = proxyPattern.matcher(req.relativePath());
                             if (matcher.matches()) {
                                 String runnerId = matcher.group("id");
                                 Runner runner = cluster.runner(runnerId)
                                     .orElseThrow(() -> new NotFoundException("No runner with that ID exists"));
-                                String rel = matcher.groupCount() == 1 ? "/" : matcher.group("targetPath");
+                                String rel = matcher.groupCount() == 1 ? "/" : "/" + matcher.group("targetPath");
                                 String qs = req.uri().getRawQuery();
                                 if (!Mutils.nullOrEmpty(qs)) {
                                     rel += "?" + qs;

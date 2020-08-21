@@ -37,7 +37,11 @@ public class App {
                     })
                     .addHandler(Method.GET, "/headers", (req, resp, pp) -> {
                         resp.contentType("text/plain;charset=utf-8");
+                        String someQuery = req.query().get("some-query", "");
                         try (PrintWriter writer = resp.writer()) {
+                            if (!Mutils.nullOrEmpty(someQuery)) {
+                                writer.append("some-query: " + someQuery + "\r\n\r\n");
+                            }
                             for (Map.Entry<String, String> header : req.headers()) {
                                 writer.append(header.getKey()).append(":").append(header.getValue()).append("\r\n");
                             }
