@@ -30,8 +30,8 @@ import static com.danielflower.apprunner.router.Config.dirPath;
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
 import static scaffolding.ContentResponseMatcher.equalTo;
 
 public class RoutingTest {

@@ -7,8 +7,8 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.net.URI;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 public class RunnerTest {
     private Runner runner = new Runner("one", URI.create("http://localhost:8232"), 3);

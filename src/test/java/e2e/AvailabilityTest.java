@@ -4,7 +4,6 @@ import com.danielflower.apprunner.router.App;
 import com.danielflower.apprunner.router.Config;
 import com.danielflower.apprunner.router.mgmt.SystemInfo;
 import org.eclipse.jetty.client.api.ContentResponse;
-import org.hamcrest.MatcherAssert;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.*;
@@ -21,9 +20,9 @@ import java.util.Map;
 
 import static com.danielflower.apprunner.router.Config.dirPath;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static scaffolding.ContentResponseMatcher.equalTo;
 
 public class AvailabilityTest {
@@ -31,7 +30,6 @@ public class AvailabilityTest {
     private static AppRunnerInstance unhealthyRunner;
     private App router;
     private RestClient httpClient;
-    private Map<String, String> env;
 
     @BeforeClass
     public static void createRunners() {
@@ -45,7 +43,6 @@ public class AvailabilityTest {
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerHttpPort));
         env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
-        this.env = env;
         router = new App(new Config(env));
         router.start();
         String host = SystemInfo.create().hostName;
@@ -97,7 +94,7 @@ public class AvailabilityTest {
         JSONObject all = new JSONObject(systemResponse.getContentAsString());
         assertThat(all.getBoolean("appRunnerStarted"), equalTo(false));
         JSONArray runners = all.getJSONArray("runners");
-        MatcherAssert.assertThat(runners.length(), equalTo(2));
+        assertThat(runners.length(), equalTo(2));
         for (Object runnerO : runners) {
             JSONObject runner = (JSONObject) runnerO;
             if (runner.getJSONObject("system").getBoolean("appRunnerStarted")) {
