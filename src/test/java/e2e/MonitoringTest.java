@@ -61,7 +61,9 @@ public class MonitoringTest {
 
     @AfterClass
     public static void deleteRunners() {
-        instance.shutDown();
+        if (instance != null) {
+            instance.shutDown();
+        }
     }
 
 
