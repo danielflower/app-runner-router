@@ -19,8 +19,8 @@
     </properties>
 
     <ciManagement>
-        <system>travis-ci</system>
-        <url>https://travis-ci.org/danielflower/app-runner-router</url>
+        <system>Github Actions</system>
+        <url>https://github.com/danielflower/app-runner-router/actions</url>
     </ciManagement>
 
     <prerequisites>
