@@ -31,7 +31,8 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static scaffolding.ContentResponseMatcher.equalTo;
 import static scaffolding.Photocopier.projectRoot;
 
@@ -138,7 +139,7 @@ public class RoutingTest {
         assertThat(headersFromOne.indexOf(";proto=https\r\n"), Matchers.lessThan(headersFromOne.lastIndexOf(";proto=http\r\n")));
 
         assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\n"));
-        assertThat(asList(headersFromTwo.split("X-Forwarded-Proto:https\r\n")), hasSize(3));
+        assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\n"));
         assertThat(headersFromOne, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
         assertThat(headersFromTwo, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
 
