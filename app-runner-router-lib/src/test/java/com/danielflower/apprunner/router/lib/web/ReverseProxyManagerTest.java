@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static scaffolding.Photocopier.projectRoot;
 
 public class ReverseProxyManagerTest {
 
@@ -29,7 +30,7 @@ public class ReverseProxyManagerTest {
     private final MapManager mapManager = context.mock(MapManager.class);
 
     private ProxyMap proxyMap = new ProxyMap();
-    private File configFile = new File("target/clusters/" + System.currentTimeMillis() + "/cluster.json");
+    private File configFile = new File(projectRoot(), "target/clusters/" + System.currentTimeMillis() + "/cluster.json");
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private ReverseProxyManager reverseProxyManager = new ReverseProxyManager(cluster, proxyMap, null);
 

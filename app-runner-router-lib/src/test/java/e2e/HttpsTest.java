@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static scaffolding.Photocopier.projectRoot;
 
 public class HttpsTest {
     private App router;
@@ -40,7 +41,7 @@ public class HttpsTest {
     public void httpsOnlyIsSupported() throws Exception {
         Map<String, String> env = env();
         env.put("appserver.https.port", String.valueOf(httpsPort));
-        env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));
+        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(), "local/test.keystore")));
         env.put("apprunner.keystore.password", "password");
         env.put("apprunner.keymanager.password", "password");
         router = new App(new Config(env));
@@ -55,7 +56,7 @@ public class HttpsTest {
         Map<String, String> env = env();
         env.put("appserver.port", String.valueOf(httpPort));
         env.put("appserver.https.port", String.valueOf(httpsPort));
-        env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));
+        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(), "local/test.keystore")));
         env.put("apprunner.keystore.password", "password");
         env.put("apprunner.keymanager.password", "password");
         router = new App(new Config(env));
@@ -80,7 +81,7 @@ public class HttpsTest {
 
     private static Map<String, String> env() {
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
+        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
         return env;
     }
 

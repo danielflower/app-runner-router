@@ -23,12 +23,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static scaffolding.Photocopier.projectRoot;
 
 public class ClusterTest {
 
     @Rule public final JUnitRuleMockery context = new JUnitRuleMockery();
     private final MapManager mapManager = context.mock(MapManager.class);
-    private File configFile = new File("target/clusters/" + UUID.randomUUID() + "/cluster.json");
+    private File configFile = new File(projectRoot(), "target/clusters/" + UUID.randomUUID() + "/cluster.json");
     private Cluster cluster = Cluster.load(configFile, mapManager);
     private Runner instanceOne = new Runner("one", URI.create("http://localhost:8080"), 2);
     private Runner instanceTwo = new Runner("two", URI.create("http://localhost:9999"), 10);

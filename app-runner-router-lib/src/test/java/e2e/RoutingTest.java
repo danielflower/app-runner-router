@@ -33,6 +33,7 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static scaffolding.ContentResponseMatcher.equalTo;
+import static scaffolding.Photocopier.projectRoot;
 
 public class RoutingTest {
     private static AppRunnerInstance latestAppRunnerWithoutNode;
@@ -49,7 +50,7 @@ public class RoutingTest {
         AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
         instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
         latestAppRunnerWithoutNode = instanceWithoutNode.start();
-        oldAppRunner = AppRunnerInstance.versionOne("app-runner-2").start();
+        oldAppRunner = AppRunnerInstance.oldVersion("app-runner-2").start();
     }
 
     @Before
@@ -59,8 +60,8 @@ public class RoutingTest {
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerHttpPort));
         env.put("appserver.https.port", String.valueOf(routerHttpsPort));
-        env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
-        env.put("apprunner.keystore.path", dirPath(new File("local/test.keystore")));
+        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
+        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(),"local/test.keystore")));
         env.put("apprunner.keystore.password", "password");
         env.put("apprunner.keymanager.password", "password");
         env.put("allow.untrusted.instances", "true");

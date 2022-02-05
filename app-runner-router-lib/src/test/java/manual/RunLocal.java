@@ -55,7 +55,7 @@ public class RunLocal {
         AppRunnerInstance instanceWithoutNode = AppRunnerInstance.latest("app-runner-1");
         instanceWithoutNode.env.put("NODE_EXEC", "target/invalid-path");
         appRunner1 = instanceWithoutNode.start();
-        appRunner2 = AppRunnerInstance.versionOne("app-runner-2").start();
+        appRunner2 = AppRunnerInstance.oldVersion("app-runner-2").start();
         appRunner3 = AppRunnerInstance.latest("app-runner-3").start();
 
         int routerPort = 8443;

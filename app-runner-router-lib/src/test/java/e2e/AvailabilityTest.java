@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static scaffolding.ContentResponseMatcher.equalTo;
+import static scaffolding.Photocopier.projectRoot;
 
 public class AvailabilityTest {
     private static AppRunnerInstance healthyRunner;
@@ -42,7 +43,7 @@ public class AvailabilityTest {
         int routerHttpPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerHttpPort));
-        env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
+        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
         router = new App(new Config(env));
         router.start();
         String host = SystemInfo.create().hostName;

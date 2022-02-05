@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static com.danielflower.apprunner.router.lib.Config.dirPath;
+import static scaffolding.Photocopier.projectRoot;
 
 public class MonitoringTest {
     private static AppRunnerInstance instance;
@@ -44,7 +45,7 @@ public class MonitoringTest {
         monitorPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
         env.put("appserver.port", String.valueOf(routerHttpPort));
-        env.put("appserver.data.dir", dirPath(new File("target/e2e/router/" + System.currentTimeMillis())));
+        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
         env.put("apprunner.udp.listener.host", "localhost");
         env.put("apprunner.udp.listener.port", String.valueOf(monitorPort));
         router = new App(new Config(env));

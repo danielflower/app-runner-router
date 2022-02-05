@@ -36,8 +36,17 @@ public class AppRunnerInstance {
         this.id = id;
     }
 
-    public static AppRunnerInstance versionOne(String id) {
-        return new AppRunnerInstance("app-runner-1.0.jar", id);
+    public static AppRunnerInstance oldVersion(String id) {
+        String version;
+        try {
+            // When running tests with JDK11, older apprunner versions that required classes like the below
+            // cannot start, so we just use the oldest good version that works on JDK11 for these cases.
+            Class.forName("javax.activation.DataSource");
+            version = "1.2.2";
+        } catch (ClassNotFoundException e) {
+            version = "2.3.1";
+        }
+        return new AppRunnerInstance("app-runner-" + version + ".jar", id);
     }
 
     public static AppRunnerInstance latest(String id) {

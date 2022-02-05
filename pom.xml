@@ -117,9 +117,16 @@
                                 <artifactItem>
                                     <groupId>com.danielflower.apprunner</groupId>
                                     <artifactId>app-runner</artifactId>
-                                    <version>1.2.2</version> <!-- the oldest supported version -->
+                                    <version>1.2.2</version> <!-- the oldest supported JDK8 version -->
                                     <outputDirectory>target/e2e</outputDirectory>
-                                    <destFileName>app-runner-1.0.jar</destFileName>
+                                    <destFileName>app-runner-1.2.2.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.danielflower.apprunner</groupId>
+                                    <artifactId>app-runner</artifactId>
+                                    <version>2.3.1</version> <!-- the oldest supported JDK11 version -->
+                                    <outputDirectory>target/e2e</outputDirectory>
+                                    <destFileName>app-runner-2.3.1.jar</destFileName>
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
