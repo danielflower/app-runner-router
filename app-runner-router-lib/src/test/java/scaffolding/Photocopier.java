@@ -14,7 +14,7 @@ import static org.apache.commons.io.FilenameUtils.separatorsToSystem;
 public class Photocopier {
 
     public static File sampleDir() {
-        return new File(projectRoot(), separatorsToSystem("sample-apps"));
+        return new File(projectRoot(), separatorsToSystem("app-runner-router-lib/sample-apps"));
     }
 
     public static File copySampleAppToTempDir(String sampleAppName) throws IOException {
