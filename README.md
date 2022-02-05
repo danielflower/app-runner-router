@@ -9,7 +9,8 @@ act as a reverse proxy, sending requests to the various instances it knows about
 ### Installation and configuration
 
 Download the jar, create a log config, and start it. There is an example in the `local` directory
-of this repo.
+of this repo. (Alternatively, build your own package by using the `app-runner-router-lib` - see the `app-runner-router`
+module in this repo for an example that builds it as an uber-jar.)
 
 To register App Runner instances with the router, first start them, then POST information to the router.
 
