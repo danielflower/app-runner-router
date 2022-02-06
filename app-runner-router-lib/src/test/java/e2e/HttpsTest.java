@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static com.danielflower.apprunner.router.lib.Config.dirPath;
+import static io.muserver.MuServerBuilder.muServer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static scaffolding.Photocopier.projectRoot;
@@ -29,9 +30,8 @@ public class HttpsTest {
     @Test
     public void httpOnlyIsSupported() throws Exception {
         Map<String, String> env = env();
-        env.put("appserver.port", String.valueOf(httpPort));
         router = new App(new Config(env));
-        router.start();
+        router.start(muServer().withHttpPort(httpPort));
 
         assertWorks(httpClient);
         assertDoesNotWork(httpsClient);
@@ -40,12 +40,8 @@ public class HttpsTest {
     @Test
     public void httpsOnlyIsSupported() throws Exception {
         Map<String, String> env = env();
-        env.put("appserver.https.port", String.valueOf(httpsPort));
-        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(), "local/test.keystore")));
-        env.put("apprunner.keystore.password", "password");
-        env.put("apprunner.keymanager.password", "password");
         router = new App(new Config(env));
-        router.start();
+        router.start(muServer().withHttpsPort(httpsPort));
 
         assertWorks(httpsClient);
         assertDoesNotWork(httpClient);
@@ -54,13 +50,8 @@ public class HttpsTest {
     @Test
     public void httpAndHttpsTogetherAreSupported() throws Exception {
         Map<String, String> env = env();
-        env.put("appserver.port", String.valueOf(httpPort));
-        env.put("appserver.https.port", String.valueOf(httpsPort));
-        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(), "local/test.keystore")));
-        env.put("apprunner.keystore.password", "password");
-        env.put("apprunner.keymanager.password", "password");
         router = new App(new Config(env));
-        router.start();
+        router.start(muServer().withHttpPort(httpPort).withHttpsPort(httpsPort));
 
         assertWorks(httpClient);
         assertWorks(httpsClient);

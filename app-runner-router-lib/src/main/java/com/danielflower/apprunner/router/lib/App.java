@@ -23,8 +23,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.muserver.ContextHandlerBuilder.context;
-import static io.muserver.Http2ConfigBuilder.http2Config;
-import static io.muserver.MuServerBuilder.muServer;
 import static io.muserver.murp.ReverseProxyBuilder.reverseProxy;
 import static io.muserver.rest.CORSConfigBuilder.corsConfig;
 import static io.muserver.rest.RestHandlerBuilder.restHandler;
@@ -40,7 +38,7 @@ public class App {
         this.config = config;
     }
 
-    public void start() throws Exception {
+    public void start(MuServerBuilder muServerBuilder) throws Exception {
         SystemInfo systemInfo = SystemInfo.create();
         log.info(systemInfo.toString());
 
@@ -48,24 +46,12 @@ public class App {
 
         ProxyMap proxyMap = new ProxyMap();
 
-
-        int httpPort = config.getInt(Config.SERVER_HTTP_PORT, -1);
-        int httpsPort = config.getInt(Config.SERVER_HTTPS_PORT, -1);
-        HttpsConfigBuilder httpsConfigBuilder = null;
-        if (httpsPort > -1) {
-            httpsConfigBuilder = HttpsConfigBuilder.httpsConfig()
-                .withKeystore(config.getFile("apprunner.keystore.path"))
-                .withKeystorePassword(config.get("apprunner.keystore.password"))
-                .withKeyPassword(config.get("apprunner.keymanager.password"))
-                .withKeystoreType(config.get("apprunner.keystore.type", "JKS"));
-        }
-
-        boolean discardClientFowarded = config.getBoolean("apprunner.proxy.discard.client.forwarded.headers", false);
+        boolean discardClientFowarded = config.getBoolean(Config.PROXY_DISCARD_CLIENT_FORWARDED_HEADERS, false);
 
         String defaultAppName = config.get(Config.DEFAULT_APP_NAME, null);
-        boolean allowUntrustedInstances = config.getBoolean("allow.untrusted.instances", true);
+        boolean allowUntrustedInstances = config.getBoolean(Config.ALLOW_UNTRUSTED_APPRUNNER_INSTANCES, true);
 
-        int idleTimeout = config.getInt("apprunner.proxy.idle.timeout", 30000);
+        int idleTimeout = config.getInt(Config.PROXY_IDLE_TIMEOUT, 30000);
 
         HttpClient standardHttpClient = new HttpClient(new SslContextFactory.Client(allowUntrustedInstances));
         standardHttpClient.start();
@@ -76,7 +62,7 @@ public class App {
         cluster.refreshRunnerCountCache(mapManager.getCurrentMapping());
 
         AppRequestListener appRequestListener = getAppRequestListener();
-        int totalTimeout = config.getInt("apprunner.proxy.total.timeout", 20 * 60000);
+        int totalTimeout = config.getInt(Config.PROXY_TOTAL_TIMEOUT, 20 * 60000);
 
         ReverseProxyManager reverseProxyManager = new ReverseProxyManager(cluster, proxyMap, appRequestListener);
         CORSConfig corsConfig = corsConfig().withAllOriginsAllowed()
@@ -85,7 +71,7 @@ public class App {
             .build();
         AppsCallAggregator appsCallAggregator = new AppsCallAggregator(mapManager, cluster, corsConfig);
 
-        long maxRequestSize = config.getLong("apprunner.request.max.size.bytes", 500 * 1024 * 1024L);
+        long maxRequestSize = config.getLong(Config.REQUEST_MAX_SIZE_BYTES, 500 * 1024 * 1024L);
 
         int maxHeadersSize = 24 * 1024;
         Pattern proxyPattern = Pattern.compile("/(?<id>[^/]+)(/(?<targetPath>.*))?");
@@ -95,13 +81,9 @@ public class App {
             .withMaxConnectionsPerDestination(1024)
             .withSslContextFactory(new SslContextFactory.Client(allowUntrustedInstances))
             .build();
-        muServer = muServer()
-            .withHttpPort(httpPort)
-            .withHttpsPort(httpsPort)
-            .withHttpsConfig(httpsConfigBuilder)
+        muServer = muServerBuilder
             .withMaxRequestSize(maxRequestSize)
-            .withIdleTimeout(idleTimeout + 5000 /* let the proxy timeout first */, TimeUnit.MILLISECONDS)
-            .withHttp2Config(http2Config().enabled(config.getBoolean("apprunner.enable.http2", false)))
+            .withIdleTimeout(idleTimeout + 5000 /* let the proxy timeout first for calls via the proxy */, TimeUnit.MILLISECONDS)
             .withMaxHeadersSize(maxHeadersSize)
             .addHandler(Method.GET, "/favicon.ico", new FavIconHandler())
             .addHandler(Method.GET, "/", new HomeRedirectHandler(defaultAppName))
@@ -156,7 +138,7 @@ public class App {
             )
             .start();
 
-        if (httpPort >= 0 && httpsPort >= 0) {
+        if (muServer.httpUri() != null && muServer.httpsUri() != null) {
             log.info("Started web server at " + muServer.httpsUri() + " and " + muServer.httpUri());
         } else {
             log.info("Started web server at " + muServer.uri());
@@ -164,8 +146,8 @@ public class App {
     }
 
     private AppRequestListener getAppRequestListener() {
-        String host = config.get("apprunner.udp.listener.host", null);
-        int port = config.getInt("apprunner.udp.listener.port", 0);
+        String host = config.get(Config.UDP_LISTENER_HOST, null);
+        int port = config.getInt(Config.UDP_LISTENER_PORT, 0);
         if (host == null || port < 1) {
             return null;
         }

@@ -3,16 +3,14 @@ package e2e;
 import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.Config;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
+import io.muserver.MuServerBuilder;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.*;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import scaffolding.AppRepo;
-import scaffolding.AppRunnerInstance;
-import scaffolding.RestClient;
-import scaffolding.Waiter;
+import scaffolding.*;
 
 import java.io.File;
 import java.util.HashMap;
@@ -42,10 +40,9 @@ public class AvailabilityTest {
     public void create() throws Exception {
         int routerHttpPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.port", String.valueOf(routerHttpPort));
         env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
         router = new App(new Config(env));
-        router.start();
+        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort));
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
 

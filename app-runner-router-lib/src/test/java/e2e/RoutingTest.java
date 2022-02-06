@@ -4,6 +4,7 @@ import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.Config;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.lib.web.v1.SystemResource;
+import io.muserver.MuServerBuilder;
 import io.muserver.Mutils;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.CoreMatchers;
@@ -45,6 +46,8 @@ public class RoutingTest {
     private RestClient httpsClient;
     private RestClient proxyToOldClient;
     private RestClient proxyToLatestWithoutNodeClient;
+    private final int routerHttpPort = AppRunnerInstance.getAFreePort();
+    private final int routerHttpsPort = AppRunnerInstance.getAFreePort();
 
     @BeforeClass
     public static void createRunners() {
@@ -56,19 +59,12 @@ public class RoutingTest {
 
     @Before
     public void create() throws Exception {
-        int routerHttpPort = AppRunnerInstance.getAFreePort();
-        int routerHttpsPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.port", String.valueOf(routerHttpPort));
-        env.put("appserver.https.port", String.valueOf(routerHttpsPort));
-        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(),"local/test.keystore")));
-        env.put("apprunner.keystore.password", "password");
-        env.put("apprunner.keymanager.password", "password");
-        env.put("allow.untrusted.instances", "true");
+        env.put(Config.DATA_DIR, dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
+        env.put(Config.ALLOW_UNTRUSTED_APPRUNNER_INSTANCES, "true");
         this.env = env;
         router = new App(new Config(env));
-        router.start();
+        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort));
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
         httpsClient = RestClient.create("https://" + host + ":" + routerHttpsPort);
@@ -100,7 +96,7 @@ public class RoutingTest {
         ContentResponse appRunners = httpClient.getAppRunners();
         assertThat(appRunners.getStatus(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
-            "  { 'id': 'app-runner-1', 'url': '" + urlOfLatest.toString() + "', 'appCount': 0, 'maxApps': 1, " + "'systemUrl': '" + urlOfLatest.resolve("/api/v1/system").toString() + "', 'appsUrl': '" + urlOfLatest.resolve("/api/v1/apps").toString() + "' }," +
+            "  { 'id': 'app-runner-1', 'url': '" + urlOfLatest + "', 'appCount': 0, 'maxApps': 1, " + "'systemUrl': '" + urlOfLatest.resolve("/api/v1/system") + "', 'appsUrl': '" + urlOfLatest.resolve("/api/v1/apps") + "' }," +
             "  { 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'appCount': 0, 'maxApps': 2 }" +
             "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
 
@@ -377,7 +373,7 @@ public class RoutingTest {
         httpClient.deploy("my-app");
         router.shutdown();
         router = new App(new Config(env));
-        router.start();
+        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort));
 
         Waiter waiter = Waiter.waitForApp(httpClient.targetURI(), "my-app");
         waiter.blockUntilReady();

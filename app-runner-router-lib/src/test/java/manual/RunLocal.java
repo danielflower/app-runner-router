@@ -2,6 +2,8 @@ package manual;
 
 import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.Config;
+import io.muserver.HttpsConfigBuilder;
+import io.muserver.MuServerBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -60,18 +62,20 @@ public class RunLocal {
 
         int routerPort = 8443;
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("apprunner.enable.http2", "false");
-        env.put("appserver.https.port", String.valueOf(routerPort));
-        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        env.put("apprunner.keystore.path", dirPath(new File(projectRoot(), "local/test.keystore")));
-        env.put("apprunner.keystore.password", "password");
-        env.put("apprunner.keymanager.password", "password");
-        env.put("apprunner.udp.listener.host", "localhost");
-        env.put("apprunner.udp.listener.port", "12888");
-        env.put("appserver.default.app.name", "app-runner-home");
+        env.put(Config.DATA_DIR, dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
+        env.put(Config.UDP_LISTENER_HOST, "localhost");
+        env.put(Config.UDP_LISTENER_PORT, "12888");
+        env.put(Config.DEFAULT_APP_NAME, "app-runner-home");
 
         router = new App(new Config(env));
-        router.start();
+        router.start(MuServerBuilder.muServer()
+            .withHttpsPort(routerPort)
+            .withHttpsConfig(HttpsConfigBuilder.httpsConfig()
+                .withKeystore(new File(projectRoot(), "local/test.keystore"))
+                .withKeyPassword("password")
+                .withKeystorePassword("password")
+            )
+        );
         URI routerUri = new URI("https://localhost:" + routerPort);
         RestClientThatThrows client = new RestClientThatThrows(RestClient.create(routerUri.toString()));
 

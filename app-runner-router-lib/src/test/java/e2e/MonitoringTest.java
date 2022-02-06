@@ -3,6 +3,7 @@ package e2e;
 import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.Config;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
+import io.muserver.MuServerBuilder;
 import org.json.JSONObject;
 import org.junit.*;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -44,12 +45,11 @@ public class MonitoringTest {
         int routerHttpPort = AppRunnerInstance.getAFreePort();
         monitorPort = AppRunnerInstance.getAFreePort();
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.port", String.valueOf(routerHttpPort));
         env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
         env.put("apprunner.udp.listener.host", "localhost");
         env.put("apprunner.udp.listener.port", String.valueOf(monitorPort));
         router = new App(new Config(env));
-        router.start();
+        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort));
         String host = SystemInfo.create().hostName;
         client = RestClient.create("http://" + host + ":" + routerHttpPort);
     }

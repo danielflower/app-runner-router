@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.NotFoundException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.Map;
@@ -21,7 +22,14 @@ public class FavIconHandler implements RouteHandler {
         try {
             URL fav = this.getClass().getClassLoader().getResource("favicon.ico");
             Resource r = Resource.newResource(fav);
-            bytes = IO.readBytes(r.getInputStream());
+            if (r != null) {
+                try (InputStream inputStream = r.getInputStream()) {
+                    bytes = IO.readBytes(inputStream);
+                }
+            } else {
+                bytes = null;
+                log.warn("Could not find favicon on classpath");
+            }
         } catch (Exception e) {
             log.warn("Could not load favicon", e);
             bytes = null;

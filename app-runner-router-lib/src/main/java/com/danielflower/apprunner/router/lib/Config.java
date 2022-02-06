@@ -17,6 +17,13 @@ public class Config {
     public static final String SERVER_HTTPS_PORT = "appserver.https.port";
     public static final String DATA_DIR = "appserver.data.dir";
     public static final String DEFAULT_APP_NAME = "appserver.default.app.name";
+    public static final String PROXY_DISCARD_CLIENT_FORWARDED_HEADERS = "apprunner.proxy.discard.client.forwarded.headers";
+    public static final String ALLOW_UNTRUSTED_APPRUNNER_INSTANCES = "allow.untrusted.instances";
+    public static final String PROXY_IDLE_TIMEOUT = "apprunner.proxy.idle.timeout";
+    public static final String PROXY_TOTAL_TIMEOUT = "apprunner.proxy.total.timeout";
+    public static final String REQUEST_MAX_SIZE_BYTES = "apprunner.request.max.size.bytes";
+    public static final String UDP_LISTENER_HOST = "apprunner.udp.listener.host";
+    public static final String UDP_LISTENER_PORT = "apprunner.udp.listener.port";
 
     public static Config load(Map<String, String> systemEnv, String[] commandLineArgs) throws IOException {
         Map<String, String> env = new HashMap<>(systemEnv);

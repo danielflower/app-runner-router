@@ -13,16 +13,16 @@ public class ConfigTest {
     @Test
     public void envVarStyleIsSupported() throws Exception {
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("APPSERVER_PORT", "123");
+        env.put(Config.SERVER_HTTP_PORT, "123");
         Config config = Config.load(env, new String[0]);
-        assertThat(config.get("appserver.port"), equalTo("123"));
+        assertThat(config.get(Config.SERVER_HTTP_PORT), equalTo("123"));
     }
 
     @Test
     public void systemPropertyStyleIsSupported() throws Exception {
         Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.port", "123");
+        env.put(Config.SERVER_HTTP_PORT, "123");
         Config config = Config.load(env, new String[0]);
-        assertThat(config.get("appserver.port"), equalTo("123"));
+        assertThat(config.get(Config.SERVER_HTTP_PORT), equalTo("123"));
     }
 }

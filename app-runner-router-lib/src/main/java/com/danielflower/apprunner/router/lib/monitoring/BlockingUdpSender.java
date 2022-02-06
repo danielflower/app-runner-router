@@ -9,12 +9,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class BlockingUdpSender implements AppRequestListener {
     private static final Logger log = LoggerFactory.getLogger(BlockingUdpSender.class);
 
-    private final Charset encoding = Charset.forName("UTF-8");
     private final DatagramChannel clientSocket;
 
     private BlockingUdpSender(DatagramChannel clientSocket) {
@@ -36,7 +35,7 @@ public class BlockingUdpSender implements AppRequestListener {
     @Override
     public void onRequestComplete(RequestInfo info) {
         try {
-            byte[] sendData = info.toJSON().getBytes(encoding);
+            byte[] sendData = info.toJSON().getBytes(StandardCharsets.UTF_8);
             clientSocket.write(ByteBuffer.wrap(sendData));
         } catch (Exception e) {
             log.info("Error sending message: " + e.getMessage());
