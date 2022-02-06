@@ -1,12 +1,14 @@
 package e2e;
 
 import com.danielflower.apprunner.router.lib.App;
-import com.danielflower.apprunner.router.lib.Config;
+import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.lib.web.v1.SystemResource;
 import io.muserver.MuServerBuilder;
 import io.muserver.Mutils;
+import io.muserver.murp.HttpClientBuilder;
 import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -22,12 +24,9 @@ import scaffolding.Waiter;
 
 import java.io.File;
 import java.net.URI;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -42,12 +41,12 @@ public class RoutingTest {
     private static AppRunnerInstance oldAppRunner;
     private App router;
     private RestClient httpClient;
-    private Map<String, String> env;
     private RestClient httpsClient;
     private RestClient proxyToOldClient;
     private RestClient proxyToLatestWithoutNodeClient;
     private final int routerHttpPort = AppRunnerInstance.getAFreePort();
     private final int routerHttpsPort = AppRunnerInstance.getAFreePort();
+    private File dataDir = new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis());
 
     @BeforeClass
     public static void createRunners() {
@@ -59,17 +58,24 @@ public class RoutingTest {
 
     @Before
     public void create() throws Exception {
-        Map<String, String> env = new HashMap<>(System.getenv());
-        env.put(Config.DATA_DIR, dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        env.put(Config.ALLOW_UNTRUSTED_APPRUNNER_INSTANCES, "true");
-        this.env = env;
-        router = new App(new Config(env));
-        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort));
+        router = createStartedRouter();
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
         httpsClient = RestClient.create("https://" + host + ":" + routerHttpsPort);
         proxyToLatestWithoutNodeClient = RestClient.create("https://" + host + ":" + routerHttpsPort + "/api/v1/runner-proxy/" + latestAppRunnerWithoutNode.id());
         proxyToOldClient = RestClient.create("https://" + host + ":" + routerHttpsPort + "/api/v1/runner-proxy/" + oldAppRunner.id());
+    }
+
+    private App createStartedRouter() throws Exception {
+        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client(true);
+        sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
+        App router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
+            .withDataDir(dataDir)
+            .withReverseProxyHttpClient(HttpClientBuilder.httpClient().withSslContextFactory(sslContextFactory).build())
+            .withMuServerBuilder(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort))
+            .build());
+        router.start();
+        return router;
     }
 
     @After
@@ -87,7 +93,7 @@ public class RoutingTest {
 
     @Test
     public void appRunnersCanBeRegisteredAndDeregisteredWithTheRestAPIWithAnHTTPRouter() throws Exception {
-        assertThat(httpClient.get("/"), equalTo(404, containsString("You can set a default app by setting the appserver.default.app.name property")));
+        assertThat(httpClient.get("/"), equalTo(404, containsString("Welcome to AppRunner. No application has been set as the homepage.")));
 
         URI urlOfLatest = latestAppRunnerWithoutNode.httpsUrl();
         assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), urlOfLatest, 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
@@ -372,8 +378,7 @@ public class RoutingTest {
         httpClient.createApp(app1.gitUrl(), "my-app");
         httpClient.deploy("my-app");
         router.shutdown();
-        router = new App(new Config(env));
-        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort));
+        router = createStartedRouter();
 
         Waiter waiter = Waiter.waitForApp(httpClient.targetURI(), "my-app");
         waiter.blockUntilReady();

@@ -1,6 +1,5 @@
 package com.danielflower.apprunner.router.lib.web;
 
-import com.danielflower.apprunner.router.lib.Config;
 import io.muserver.MuRequest;
 import io.muserver.MuResponse;
 import io.muserver.Mutils;
@@ -18,8 +17,8 @@ public class HomeRedirectHandler implements RouteHandler {
 
     @Override
     public void handle(MuRequest request, MuResponse response, Map<String, String> pathParams) {
-        if ( Mutils.nullOrEmpty(defaultAppName)) {
-            throw new NotFoundException("You can set a default app by setting the " + Config.DEFAULT_APP_NAME + " property.");
+        if (Mutils.nullOrEmpty(defaultAppName)) {
+            throw new NotFoundException("Welcome to AppRunner. No application has been set as the homepage.");
         }
         response.redirect("/" + defaultAppName);
     }

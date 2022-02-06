@@ -16,7 +16,9 @@ public class RestClient {
     public static final HttpClient client;
 
     static {
-        HttpClient c = new HttpClient(new SslContextFactory(true));
+        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client(true);
+        sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
+        HttpClient c = new HttpClient(sslContextFactory);
         c.setConnectTimeout(10000);
         try {
             c.start();

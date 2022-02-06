@@ -1,7 +1,8 @@
 package e2e;
 
 import com.danielflower.apprunner.router.lib.App;
-import com.danielflower.apprunner.router.lib.Config;
+import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
+import io.muserver.MuServerBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -9,11 +10,8 @@ import scaffolding.ContentResponseMatcher;
 import scaffolding.RestClient;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static io.muserver.MuServerBuilder.muServer;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -29,32 +27,31 @@ public class HttpsTest {
 
     @Test
     public void httpOnlyIsSupported() throws Exception {
-        Map<String, String> env = env();
-        router = new App(new Config(env));
-        router.start(muServer().withHttpPort(httpPort));
-
+        startRouter(muServer().withHttpPort(httpPort));
         assertWorks(httpClient);
         assertDoesNotWork(httpsClient);
     }
 
     @Test
     public void httpsOnlyIsSupported() throws Exception {
-        Map<String, String> env = env();
-        router = new App(new Config(env));
-        router.start(muServer().withHttpsPort(httpsPort));
-
+        startRouter(muServer().withHttpsPort(httpsPort));
         assertWorks(httpsClient);
         assertDoesNotWork(httpClient);
     }
 
     @Test
     public void httpAndHttpsTogetherAreSupported() throws Exception {
-        Map<String, String> env = env();
-        router = new App(new Config(env));
-        router.start(muServer().withHttpPort(httpPort).withHttpsPort(httpsPort));
-
+        startRouter(muServer().withHttpPort(httpPort).withHttpsPort(httpsPort));
         assertWorks(httpClient);
         assertWorks(httpsClient);
+    }
+
+    private void startRouter(MuServerBuilder muServerBuilder) throws Exception {
+        router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
+            .withDataDir(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis()))
+            .withMuServerBuilder(muServerBuilder)
+            .build());
+        router.start();
     }
 
     private static void assertWorks(RestClient client) throws Exception {
@@ -70,18 +67,11 @@ public class HttpsTest {
         }
     }
 
-    private static Map<String, String> env() {
-        Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        return env;
-    }
-
     @After
-    public void destroy() throws Exception {
+    public void destroy() {
         if (router != null) {
             router.shutdown();
         }
     }
-
 
 }

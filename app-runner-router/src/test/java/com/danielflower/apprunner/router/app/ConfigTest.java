@@ -1,4 +1,4 @@
-package com.danielflower.apprunner.router.lib;
+package com.danielflower.apprunner.router.app;
 
 import org.junit.Test;
 

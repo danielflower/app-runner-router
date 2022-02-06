@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
+import static io.muserver.Mutils.fullPath;
 import static org.junit.Assert.assertTrue;
 import static scaffolding.Photocopier.projectRoot;
 
@@ -74,15 +74,15 @@ public class AppRunnerInstance {
         }
 
         CommandLine command = new CommandLine("java")
-            .addArgument("-Dlogback.configurationFile=" + dirPath(new File(projectRoot(), "app-runner-router-lib/src/test/resources/logback-test.xml")))
+            .addArgument("-Dlogback.configurationFile=" + fullPath(new File(projectRoot(), "app-runner-router-lib/src/test/resources/logback-test.xml")))
             .addArgument("-Dappserver.port=" + httpPort)
             .addArgument("-Dappserver.https.port=" + httpsPort)
-            .addArgument("-Dappserver.data.dir=" + dirPath(new File(dir, "data")))
-            .addArgument("-Dapprunner.keystore.path=" + dirPath(new File(projectRoot(), "local/test.keystore")))
+            .addArgument("-Dappserver.data.dir=" + fullPath(new File(dir, "data")))
+            .addArgument("-Dapprunner.keystore.path=" + fullPath(new File(projectRoot(), "local/test.keystore")))
             .addArgument("-Dapprunner.keystore.password=password")
             .addArgument("-Dapprunner.keymanager.password=password")
             .addArgument("-jar")
-            .addArgument(dirPath(uberJar));
+            .addArgument(fullPath(uberJar));
         httpUrl = URI.create("http://localhost:" + httpPort + "/");
         httpsUrl = URI.create("https://localhost:" + httpsPort + "/");
         log.info("Starting " + id + " at " + httpUrl);

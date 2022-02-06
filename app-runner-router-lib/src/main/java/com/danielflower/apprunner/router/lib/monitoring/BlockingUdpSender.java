@@ -11,6 +11,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A publisher of apprunner request info over UDP.
+ */
 public class BlockingUdpSender implements AppRequestListener {
     private static final Logger log = LoggerFactory.getLogger(BlockingUdpSender.class);
 
@@ -46,5 +49,12 @@ public class BlockingUdpSender implements AppRequestListener {
     @Override
     public void stop() {
         IOUtils.closeQuietly(clientSocket);
+    }
+
+    @Override
+    public String toString() {
+        return "BlockingUdpSender{" +
+            "clientSocket=" + clientSocket.socket().getRemoteSocketAddress() +
+            '}';
     }
 }

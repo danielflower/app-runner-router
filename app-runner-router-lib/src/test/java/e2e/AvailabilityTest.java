@@ -1,7 +1,7 @@
 package e2e;
 
 import com.danielflower.apprunner.router.lib.App;
-import com.danielflower.apprunner.router.lib.Config;
+import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import io.muserver.MuServerBuilder;
 import org.eclipse.jetty.client.api.ContentResponse;
@@ -10,13 +10,13 @@ import org.json.JSONObject;
 import org.junit.*;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import scaffolding.*;
+import scaffolding.AppRepo;
+import scaffolding.AppRunnerInstance;
+import scaffolding.RestClient;
+import scaffolding.Waiter;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -39,10 +39,11 @@ public class AvailabilityTest {
     @Before
     public void create() throws Exception {
         int routerHttpPort = AppRunnerInstance.getAFreePort();
-        Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        router = new App(new Config(env));
-        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort));
+        router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
+            .withDataDir(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis()))
+            .withMuServerBuilder(MuServerBuilder.muServer().withHttpPort(routerHttpPort))
+            .build());
+        router.start();
         String host = SystemInfo.create().hostName;
         httpClient = RestClient.create("http://" + host + ":" + routerHttpPort);
 

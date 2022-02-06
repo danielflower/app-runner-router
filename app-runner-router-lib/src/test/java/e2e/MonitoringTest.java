@@ -1,8 +1,9 @@
 package e2e;
 
 import com.danielflower.apprunner.router.lib.App;
-import com.danielflower.apprunner.router.lib.Config;
+import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
+import com.danielflower.apprunner.router.lib.monitoring.BlockingUdpSender;
 import io.muserver.MuServerBuilder;
 import org.json.JSONObject;
 import org.junit.*;
@@ -17,14 +18,12 @@ import java.io.File;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static scaffolding.Photocopier.projectRoot;
 
 public class MonitoringTest {
@@ -44,12 +43,12 @@ public class MonitoringTest {
     public void create() throws Exception {
         int routerHttpPort = AppRunnerInstance.getAFreePort();
         monitorPort = AppRunnerInstance.getAFreePort();
-        Map<String, String> env = new HashMap<>(System.getenv());
-        env.put("appserver.data.dir", dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        env.put("apprunner.udp.listener.host", "localhost");
-        env.put("apprunner.udp.listener.port", String.valueOf(monitorPort));
-        router = new App(new Config(env));
-        router.start(MuServerBuilder.muServer().withHttpPort(routerHttpPort));
+        router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
+            .withDataDir(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis()))
+            .withMuServerBuilder(MuServerBuilder.muServer().withHttpPort(routerHttpPort))
+            .withAppRequestListener(BlockingUdpSender.create("localhost", monitorPort))
+            .build());
+        router.start();
         String host = SystemInfo.create().hostName;
         client = RestClient.create("http://" + host + ":" + routerHttpPort);
     }
@@ -84,7 +83,7 @@ public class MonitoringTest {
             byte[] buffer = new byte[1024];
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             serverSocket.receive(packet);
-            return new String(packet.getData(), 0, packet.getLength(), "UTF-8");
+            return new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
         });
 
         client.get("/This_is-myApp/?blah=aws&what=wat");

@@ -1,7 +1,8 @@
 package manual;
 
 import com.danielflower.apprunner.router.lib.App;
-import com.danielflower.apprunner.router.lib.Config;
+import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
+import com.danielflower.apprunner.router.lib.monitoring.BlockingUdpSender;
 import io.muserver.HttpsConfigBuilder;
 import io.muserver.MuServerBuilder;
 import org.apache.commons.io.FileUtils;
@@ -20,13 +21,11 @@ import java.awt.*;
 import java.io.*;
 import java.net.URI;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
 import static com.danielflower.apprunner.router.lib.web.v1.SystemResource.getSampleID;
+import static io.muserver.Mutils.fullPath;
 import static scaffolding.Photocopier.projectRoot;
 
 /**
@@ -41,7 +40,7 @@ public class RunLocal {
     private AppRunnerInstance appRunner3;
     private App router;
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         RunLocal runLocal = new RunLocal();
         Runtime.getRuntime().addShutdownHook(new Thread(runLocal::stop));
         try {
@@ -61,21 +60,19 @@ public class RunLocal {
         appRunner3 = AppRunnerInstance.latest("app-runner-3").start();
 
         int routerPort = 8443;
-        Map<String, String> env = new HashMap<>(System.getenv());
-        env.put(Config.DATA_DIR, dirPath(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis())));
-        env.put(Config.UDP_LISTENER_HOST, "localhost");
-        env.put(Config.UDP_LISTENER_PORT, "12888");
-        env.put(Config.DEFAULT_APP_NAME, "app-runner-home");
-
-        router = new App(new Config(env));
-        router.start(MuServerBuilder.muServer()
-            .withHttpsPort(routerPort)
-            .withHttpsConfig(HttpsConfigBuilder.httpsConfig()
-                .withKeystore(new File(projectRoot(), "local/test.keystore"))
-                .withKeyPassword("password")
-                .withKeystorePassword("password")
-            )
-        );
+        router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
+            .withDataDir(new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis()))
+            .withDefaultAppName("app-runner-home")
+            .withAppRequestListener(BlockingUdpSender.create("localhost", 12888))
+            .withMuServerBuilder(MuServerBuilder.muServer()
+                .withHttpsPort(routerPort)
+                .withHttpsConfig(HttpsConfigBuilder.httpsConfig()
+                    .withKeystore(new File(projectRoot(), "local/test.keystore"))
+                    .withKeyPassword("password")
+                    .withKeystorePassword("password")
+                ))
+            .build());
+        router.start();
         URI routerUri = new URI("https://localhost:" + routerPort);
         RestClientThatThrows client = new RestClientThatThrows(RestClient.create(routerUri.toString()));
 
@@ -95,7 +92,7 @@ public class RunLocal {
 
     private static void setupSampleApps(RestClientThatThrows client) throws Exception {
         File repoRoot = new File(projectRoot(), "target/local/repos/" + System.currentTimeMillis());
-        log.info("Creating git repos for apps at " + dirPath(repoRoot));
+        log.info("Creating git repos for apps at " + fullPath(repoRoot));
         FileUtils.forceMkdir(repoRoot);
         JSONObject system = new JSONObject(client.getSystem().getContentAsString());
         JSONArray samples = system.getJSONArray("samples");
@@ -113,7 +110,7 @@ public class RunLocal {
             FileUtils.writeByteArrayToFile(zip, zipResponse.getContent());
             File target = new File(repoRoot, id);
             if (!target.mkdir()) {
-                throw new RuntimeException("Could not make " + dirPath(target));
+                throw new RuntimeException("Could not make " + fullPath(target));
             }
             unzip(zip, target);
             AppRepo app = AppRepo.create(id, target);

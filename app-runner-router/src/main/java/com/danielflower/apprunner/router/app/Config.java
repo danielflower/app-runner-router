@@ -1,4 +1,4 @@
-package com.danielflower.apprunner.router.lib;
+package com.danielflower.apprunner.router.app;
 
 import com.danielflower.apprunner.router.lib.problems.AppRunnerException;
 import com.danielflower.apprunner.router.lib.problems.InvalidConfigException;

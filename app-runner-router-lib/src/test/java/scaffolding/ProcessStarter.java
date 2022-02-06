@@ -8,7 +8,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import static com.danielflower.apprunner.router.lib.Config.dirPath;
+import static io.muserver.Mutils.fullPath;
 
 public class ProcessStarter {
     public final Logger log;
@@ -30,17 +30,17 @@ public class ProcessStarter {
             startupWaiter.blockUntilReady();
 
             if (handler.hasResult()) {
-                String message = "The project at " + dirPath(workingDir) + " started but exited all too soon. Check the console log for information.";
+                String message = "The project at " + fullPath(workingDir) + " started but exited all too soon. Check the console log for information.";
                 throw new RuntimeException(message);
             }
         } catch (TimeoutException te) {
-            String message = "Built successfully, but timed out waiting for startup at " + dirPath(workingDir);
+            String message = "Built successfully, but timed out waiting for startup at " + fullPath(workingDir);
             watchDog.destroyProcess();
             throw new RuntimeException(message);
         } catch (RuntimeException pcse) {
             throw pcse;
         } catch (Exception e) {
-            String message = "Built successfully, but error on start for " + dirPath(workingDir);
+            String message = "Built successfully, but error on start for " + fullPath(workingDir);
             throw new RuntimeException(message, e);
         }
 
@@ -50,7 +50,7 @@ public class ProcessStarter {
 
 
     public long logStartInfo(CommandLine command, File projectRoot) {
-        log.info("Starting " + dirPath(projectRoot) + "> " + StringUtils.join(command.toStrings(), " "));
+        log.info("Starting " + fullPath(projectRoot) + "> " + StringUtils.join(command.toStrings(), " "));
         return System.currentTimeMillis();
     }
 
