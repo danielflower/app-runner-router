@@ -10,18 +10,13 @@ import org.json.JSONObject;
 import org.junit.*;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import scaffolding.AppRepo;
-import scaffolding.AppRunnerInstance;
-import scaffolding.RestClient;
-import scaffolding.Waiter;
+import scaffolding.*;
 
 import java.io.File;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static scaffolding.ContentResponseMatcher.equalTo;
+import static org.hamcrest.Matchers.*;
 import static scaffolding.Photocopier.projectRoot;
 
 public class AvailabilityTest {
@@ -55,7 +50,7 @@ public class AvailabilityTest {
 
         httpClient.deploy("app1");
         Waiter.waitForApp(httpClient.targetURI(), "app1");
-        assertThat(httpClient.get("/app1/"), equalTo(200, containsString("My Maven App")));
+        assertThat(httpClient.get("/app1/"), ContentResponseMatcher.equalTo(200, containsString("My Maven App")));
 
         unhealthyRunner.shutDown();
     }
@@ -80,11 +75,11 @@ public class AvailabilityTest {
         JSONObject actual = new JSONObject(appsResponse.getContentAsString());
         JSONAssert.assertEquals("{ " +
             "'appCount': 1," +
-            "'apps': [ { 'name': 'app1', 'url': '" + httpClient.targetURI().resolve("/app1/") + "' } ]" +
+            "'apps': [ { 'name': 'app1', 'url': '" + httpClient.targetURI().resolve("/app1/") + "', 'appRunnerInstanceId': 'healthy-app-runner', } ]" +
             "}", actual, JSONCompareMode.STRICT_ORDER);
 
         assertThat(actual.getJSONArray("errors").length(), is(1));
-
+        assertThat(actual.getJSONArray("errors").get(0).toString(), startsWith("unhealthy-app-runner: "));
     }
 
     @Test

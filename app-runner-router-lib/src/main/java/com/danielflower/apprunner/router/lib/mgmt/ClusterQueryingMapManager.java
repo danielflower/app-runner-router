@@ -38,20 +38,21 @@ public class ClusterQueryingMapManager implements MapManager {
     public Result loadAllApps(MuRequest clientRequest, List<Runner> runners) throws InterruptedException {
         Result result = new Result();
         log.info("Looking up app info from " + runners);
-        List<Future<JSONObject>> futures = new ArrayList<>();
+        List<RunnerFuture> futures = new ArrayList<>();
         for (Runner runner : runners) {
-            futures.add(executorService.submit(() -> loadRunner(clientRequest, runner)));
+            futures.add(new RunnerFuture(runner, executorService.submit(() -> loadRunner(clientRequest, runner))));
         }
-        for (Future<JSONObject> future : futures) {
+        for (RunnerFuture rf : futures) {
             try {
-                JSONObject appJson = future.get();
+                JSONObject appJson = rf.future.get();
+                appJson.put("appRunnerInstanceId", rf.runner.id);
                 result.appsJsonFromEachRunner.add(appJson);
             } catch (InterruptedException e) {
                 throw e;
             } catch (Exception e) {
                 Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
-                log.error(cause.getMessage());
-                result.errors.add(cause.getMessage());
+                log.error(rf.runner.id + " app lookup error: " + cause.getMessage());
+                result.errors.add(rf.runner.id + ": " + cause.getMessage());
             }
         }
         log.info("Got " + result.appsJsonFromEachRunner.size() + " results");
@@ -115,4 +116,14 @@ public class ClusterQueryingMapManager implements MapManager {
         }
     }
 
+
+    private static class RunnerFuture {
+        public final Runner runner;
+        public final Future<JSONObject> future;
+
+        private RunnerFuture(Runner runner, Future<JSONObject> future) {
+            this.runner = runner;
+            this.future = future;
+        }
+    }
 }
