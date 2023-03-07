@@ -65,7 +65,7 @@ public class App {
                 .addHandler(Method.OPTIONS, "/apps", (request, response, pathParams) -> response.headers().set(HeaderNames.ALLOW, "GET, POST, HEAD, OPTIONS"))
                 .addHandler(Method.POST, "/apps", new CreateAppHandler(proxyMap, mapManager, cluster, standardHttpClient))
                 .addHandler(restHandler()
-                    .addResource(new RunnerResource(cluster, mapManager))
+                    .addResource(new RunnerResource(cluster, mapManager, settings.runnerUrlVerifier()))
                     .addResource(new SystemResource(systemInfo, cluster, standardHttpClient))
                     .withCORS(settings.corsConfig())
                     .withOpenApiJsonUrl("/router-openapi.json")

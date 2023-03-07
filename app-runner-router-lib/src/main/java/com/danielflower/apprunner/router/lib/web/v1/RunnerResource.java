@@ -1,5 +1,6 @@
 package com.danielflower.apprunner.router.lib.web.v1;
 
+import com.danielflower.apprunner.router.lib.RunnerUrlVerifier;
 import com.danielflower.apprunner.router.lib.mgmt.Cluster;
 import com.danielflower.apprunner.router.lib.mgmt.MapManager;
 import com.danielflower.apprunner.router.lib.mgmt.Runner;
@@ -35,10 +36,12 @@ public class RunnerResource {
 
     private final Cluster cluster;
     private final MapManager mapManager;
+    private final RunnerUrlVerifier runnerUrlVerifier;
 
-    public RunnerResource(Cluster cluster, MapManager mapManager) {
+    public RunnerResource(Cluster cluster, MapManager mapManager, RunnerUrlVerifier runnerUrlVerifier) {
         this.cluster = cluster;
         this.mapManager = mapManager;
+        this.runnerUrlVerifier = runnerUrlVerifier;
     }
 
     @GET
@@ -115,6 +118,7 @@ public class RunnerResource {
         if (maxApps < 0) {
             return Response.status(400).entity("The max apps value must be at least 0").build();
         }
+        runnerUrlVerifier.verify(url);
 
         try {
             String resourceLocation = uriInfo.getRequestUri() + "/" + urlEncode(id);
@@ -153,6 +157,7 @@ public class RunnerResource {
         if (maxApps < 0) {
             return Response.status(400).entity("The max apps value must be at least 0").build();
         }
+        runnerUrlVerifier.verify(url);
 
         try {
             String resourceLocation = uriInfo.getRequestUri().toString();

@@ -27,6 +27,7 @@ public class AppRunnerRouterSettings {
     private final File dataDir;
     private final boolean discardClientForwarded;
     private final String defaultAppName;
+    private final RunnerUrlVerifier runnerUrlVerifier;
 
     public MuServerBuilder muServerBuilder() {
         return muServerBuilder;
@@ -60,7 +61,9 @@ public class AppRunnerRouterSettings {
         return defaultAppName;
     }
 
-    private AppRunnerRouterSettings(MuServerBuilder muServerBuilder, CORSConfig corsConfig, AppRequestListener appRequestListener, HttpClient reverseProxyHttpClient, long proxyTimeoutMillis, File dataDir, boolean discardClientForwarded, String defaultAppName) {
+    public RunnerUrlVerifier runnerUrlVerifier() { return runnerUrlVerifier; }
+
+    private AppRunnerRouterSettings(MuServerBuilder muServerBuilder, CORSConfig corsConfig, AppRequestListener appRequestListener, HttpClient reverseProxyHttpClient, long proxyTimeoutMillis, File dataDir, boolean discardClientForwarded, String defaultAppName, RunnerUrlVerifier runnerUrlVerifier) {
         this.muServerBuilder = muServerBuilder;
         this.corsConfig = corsConfig;
         this.appRequestListener = appRequestListener;
@@ -69,6 +72,7 @@ public class AppRunnerRouterSettings {
         this.dataDir = dataDir;
         this.discardClientForwarded = discardClientForwarded;
         this.defaultAppName = defaultAppName;
+        this.runnerUrlVerifier = runnerUrlVerifier;
     }
 
     @Override
@@ -94,6 +98,7 @@ public class AppRunnerRouterSettings {
         private File dataDir;
         private boolean discardClientForwarded;
         private String defaultAppName;
+        private RunnerUrlVerifier runnerUrlVerifier;
 
         public Builder withDataDir(File dataDir) {
             this.dataDir = dataDir;
@@ -135,6 +140,11 @@ public class AppRunnerRouterSettings {
             return this;
         }
 
+        public Builder withRunnerUrlVerifier(RunnerUrlVerifier runnerUrlVerifier) {
+            this.runnerUrlVerifier = runnerUrlVerifier;
+            return this;
+        }
+
         public AppRunnerRouterSettings build() {
             if (dataDir == null) {
                 throw new IllegalStateException("No dataDir has been specified");
@@ -168,7 +178,9 @@ public class AppRunnerRouterSettings {
                     .build();
             }
 
-            return new AppRunnerRouterSettings(muServerBuilder, corsConfig, appRequestListener, rpHttpClient, proxyTimeoutMillis, dataDir, discardClientForwarded, defaultAppName);
+            RunnerUrlVerifier runnerUrlVerifier = this.runnerUrlVerifier != null ? this.runnerUrlVerifier : new RunnerUrlVerifier() {};
+
+            return new AppRunnerRouterSettings(muServerBuilder, corsConfig, appRequestListener, rpHttpClient, proxyTimeoutMillis, dataDir, discardClientForwarded, defaultAppName, runnerUrlVerifier);
         }
     }
 }

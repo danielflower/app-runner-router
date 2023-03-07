@@ -2,6 +2,7 @@ package e2e;
 
 import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
+import com.danielflower.apprunner.router.lib.RunnerUrlVerifier;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.lib.web.v1.SystemResource;
 import io.muserver.MuServerBuilder;
@@ -22,6 +23,8 @@ import scaffolding.AppRunnerInstance;
 import scaffolding.RestClient;
 import scaffolding.Waiter;
 
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import java.io.File;
 import java.net.URI;
 import java.util.HashSet;
@@ -46,7 +49,7 @@ public class RoutingTest {
     private RestClient proxyToLatestWithoutNodeClient;
     private final int routerHttpPort = AppRunnerInstance.getAFreePort();
     private final int routerHttpsPort = AppRunnerInstance.getAFreePort();
-    private File dataDir = new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis());
+    private final File dataDir = new File(projectRoot(), "target/e2e/router/" + System.currentTimeMillis());
 
     @BeforeClass
     public static void createRunners() {
@@ -71,6 +74,13 @@ public class RoutingTest {
         sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
         App router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
             .withDataDir(dataDir)
+            .withRunnerUrlVerifier(new RunnerUrlVerifier() {
+                @Override
+                public void verify(String url) throws WebApplicationException {
+                    if (url.contains("badurl"))
+                        throw new BadRequestException("That is an invalid runner URL");
+                }
+            })
             .withReverseProxyHttpClient(HttpClientBuilder.httpClient().withSslContextFactory(sslContextFactory).build())
             .withMuServerBuilder(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort))
             .build());
@@ -115,6 +125,13 @@ public class RoutingTest {
         assertThat(httpClient.getRunner(oldAppRunner.id()), equalTo(404, containsString(oldAppRunner.id())));
         assertThat(httpClient.deleteRunner(latestAppRunnerWithoutNode.id()), equalTo(200, containsString(latestAppRunnerWithoutNode.id())));
     }
+
+    @Test
+    public void runnersWithInvalidUrlsAreRejected() throws Exception {
+        ContentResponse resp = httpsClient.registerRunner("someid", URI.create("https://badurl.example.org"), 1);
+        assertThat(resp, equalTo(400, containsString("That is an invalid runner URL")));
+    }
+
 
     @Test
     public void proxyHeadersAreForwardedCorrectlyToTheApp() throws Exception {
