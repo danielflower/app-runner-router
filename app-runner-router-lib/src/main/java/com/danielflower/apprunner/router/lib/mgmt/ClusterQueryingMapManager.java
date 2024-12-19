@@ -3,15 +3,17 @@ package com.danielflower.apprunner.router.lib.mgmt;
 import com.danielflower.apprunner.router.lib.web.ProxyMap;
 import io.muserver.MuRequest;
 import io.muserver.murp.ReverseProxy;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.http.HttpMethod;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -87,23 +89,21 @@ public class ClusterQueryingMapManager implements MapManager {
 
 
     private JSONObject getJSONResponse(MuRequest clientRequest, URI uri) throws InterruptedException, ExecutionException, TimeoutException {
-        ContentResponse resp;
+        HttpResponse<String> resp;
         try {
-            Request request = httpClient.newRequest(uri)
-                .timeout(10, TimeUnit.SECONDS)
-                .method(HttpMethod.GET);
+            HttpRequest.Builder request = HttpRequest.newBuilder(uri)
+                .timeout(Duration.ofSeconds(10));
             if (clientRequest != null) {
                 ReverseProxy.setForwardedHeaders(clientRequest, request, false, true);
             }
-            resp = request
-                .send();
-        } catch (TimeoutException e) {
-            throw new TimeoutException("Timed out calling " + uri);
+            resp = httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
-        if (resp.getStatus() != 200) {
-            throw new RuntimeException("Unable to load apps from " + uri + " - message was " + resp.getContentAsString());
+        if (resp.statusCode() != 200) {
+            throw new RuntimeException("Unable to load apps from " + uri + " - message was " + resp.body());
         }
-        return new JSONObject(resp.getContentAsString());
+        return new JSONObject(resp.body());
     }
 
 

@@ -2,13 +2,12 @@ package com.danielflower.apprunner.router.lib;
 
 import com.danielflower.apprunner.router.lib.monitoring.AppRequestListener;
 import io.muserver.MuServerBuilder;
-import io.muserver.murp.HttpClientBuilder;
+import io.muserver.murp.ReverseProxyBuilder;
 import io.muserver.rest.CORSConfig;
 import io.muserver.rest.CORSConfigBuilder;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import java.io.File;
+import java.net.http.HttpClient;
 import java.util.concurrent.TimeUnit;
 
 import static io.muserver.Mutils.fullPath;
@@ -28,6 +27,7 @@ public class AppRunnerRouterSettings {
     private final boolean discardClientForwarded;
     private final String defaultAppName;
     private final RunnerUrlVerifier runnerUrlVerifier;
+    private final boolean allowUntrustedInstances;
 
     public MuServerBuilder muServerBuilder() {
         return muServerBuilder;
@@ -63,7 +63,11 @@ public class AppRunnerRouterSettings {
 
     public RunnerUrlVerifier runnerUrlVerifier() { return runnerUrlVerifier; }
 
-    private AppRunnerRouterSettings(MuServerBuilder muServerBuilder, CORSConfig corsConfig, AppRequestListener appRequestListener, HttpClient reverseProxyHttpClient, long proxyTimeoutMillis, File dataDir, boolean discardClientForwarded, String defaultAppName, RunnerUrlVerifier runnerUrlVerifier) {
+    public boolean allowUntrustedInstances() {
+        return allowUntrustedInstances;
+    }
+
+    private AppRunnerRouterSettings(MuServerBuilder muServerBuilder, CORSConfig corsConfig, AppRequestListener appRequestListener, HttpClient reverseProxyHttpClient, long proxyTimeoutMillis, File dataDir, boolean discardClientForwarded, String defaultAppName, RunnerUrlVerifier runnerUrlVerifier, boolean allowUntrustedInstances) {
         this.muServerBuilder = muServerBuilder;
         this.corsConfig = corsConfig;
         this.appRequestListener = appRequestListener;
@@ -73,6 +77,7 @@ public class AppRunnerRouterSettings {
         this.discardClientForwarded = discardClientForwarded;
         this.defaultAppName = defaultAppName;
         this.runnerUrlVerifier = runnerUrlVerifier;
+        this.allowUntrustedInstances = allowUntrustedInstances;
     }
 
     @Override
@@ -93,12 +98,13 @@ public class AppRunnerRouterSettings {
         private MuServerBuilder muServerBuilder;
         private CORSConfig corsConfig;
         private AppRequestListener appRequestListener;
-        private HttpClient reverseProxyHttpClient;
+        private java.net.http.HttpClient reverseProxyHttpClient;
         private long proxyTimeoutMillis = 20 * 60000;
         private File dataDir;
         private boolean discardClientForwarded;
         private String defaultAppName;
         private RunnerUrlVerifier runnerUrlVerifier;
+        private boolean allowUntrustedInstances;
 
         public Builder withDataDir(File dataDir) {
             this.dataDir = dataDir;
@@ -130,7 +136,7 @@ public class AppRunnerRouterSettings {
             return this;
         }
 
-        public Builder withReverseProxyHttpClient(HttpClient reverseProxyHttpClient) {
+        public Builder withReverseProxyHttpClient(java.net.http.HttpClient reverseProxyHttpClient) {
             this.reverseProxyHttpClient = reverseProxyHttpClient;
             return this;
         }
@@ -142,6 +148,11 @@ public class AppRunnerRouterSettings {
 
         public Builder withRunnerUrlVerifier(RunnerUrlVerifier runnerUrlVerifier) {
             this.runnerUrlVerifier = runnerUrlVerifier;
+            return this;
+        }
+
+        public Builder withAllowUntrustedInstances(boolean allowUntrustedInstances) {
+            this.allowUntrustedInstances = allowUntrustedInstances;
             return this;
         }
 
@@ -166,21 +177,14 @@ public class AppRunnerRouterSettings {
                 ;
             CORSConfig corsConfig = this.corsConfig != null ? this.corsConfig : CORSConfigBuilder.corsConfig().build();
 
-            HttpClient rpHttpClient = this.reverseProxyHttpClient;
+            java.net.http.HttpClient rpHttpClient = this.reverseProxyHttpClient;
             if (rpHttpClient == null) {
-                SslContextFactory.Client sslContextFactory = new SslContextFactory.Client(false);
-                sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
-                rpHttpClient = HttpClientBuilder.httpClient()
-                    .withIdleTimeoutMillis(defaultIdleTimeout)
-                    .withMaxRequestHeadersSize(defaultMaxHeadersSize)
-                    .withMaxConnectionsPerDestination(1024)
-                    .withSslContextFactory(sslContextFactory)
-                    .build();
+                rpHttpClient = ReverseProxyBuilder.createHttpClientBuilder(allowUntrustedInstances).build();
             }
 
             RunnerUrlVerifier runnerUrlVerifier = this.runnerUrlVerifier != null ? this.runnerUrlVerifier : new RunnerUrlVerifier() {};
 
-            return new AppRunnerRouterSettings(muServerBuilder, corsConfig, appRequestListener, rpHttpClient, proxyTimeoutMillis, dataDir, discardClientForwarded, defaultAppName, runnerUrlVerifier);
+            return new AppRunnerRouterSettings(muServerBuilder, corsConfig, appRequestListener, rpHttpClient, proxyTimeoutMillis, dataDir, discardClientForwarded, defaultAppName, runnerUrlVerifier, allowUntrustedInstances);
         }
     }
 }

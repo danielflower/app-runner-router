@@ -136,25 +136,6 @@ public class ReverseProxyManagerTest {
                 return null;
             }
 
-            @Override
-            public String parameter(String name) {
-                return null;
-            }
-
-            @Override
-            public List<String> parameters(String name) {
-                return null;
-            }
-
-            @Override
-            public String formValue(String name) throws IOException {
-                return null;
-            }
-
-            @Override
-            public List<String> formValues(String name) throws IOException {
-                return null;
-            }
 
             @Override
             public List<Cookie> cookies() {
@@ -174,16 +155,6 @@ public class ReverseProxyManagerTest {
             @Override
             public String relativePath() {
                 return path;
-            }
-
-            @Override
-            public Object state() {
-                return null;
-            }
-
-            @Override
-            public void state(Object value) {
-
             }
 
             @Override

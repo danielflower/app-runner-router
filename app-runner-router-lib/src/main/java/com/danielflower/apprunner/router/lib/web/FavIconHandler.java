@@ -1,15 +1,12 @@
 package com.danielflower.apprunner.router.lib.web;
 
 import io.muserver.*;
-import org.eclipse.jetty.util.IO;
-import org.eclipse.jetty.util.resource.Resource;
+import jakarta.ws.rs.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.NotFoundException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.util.Map;
 
 public class FavIconHandler implements RouteHandler {
@@ -20,11 +17,10 @@ public class FavIconHandler implements RouteHandler {
     public FavIconHandler() {
         byte[] bytes;
         try {
-            URL fav = this.getClass().getClassLoader().getResource("favicon.ico");
-            Resource r = Resource.newResource(fav);
-            if (r != null) {
-                try (InputStream inputStream = r.getInputStream()) {
-                    bytes = IO.readBytes(inputStream);
+            var fav = this.getClass().getClassLoader().getResourceAsStream("favicon.ico");
+            if (fav != null) {
+                try (InputStream inputStream = fav) {
+                    bytes = inputStream.readAllBytes();
                 }
             } else {
                 bytes = null;

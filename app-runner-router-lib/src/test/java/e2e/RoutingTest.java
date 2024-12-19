@@ -7,9 +7,10 @@ import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import com.danielflower.apprunner.router.lib.web.v1.SystemResource;
 import io.muserver.MuServerBuilder;
 import io.muserver.Mutils;
-import io.muserver.murp.HttpClientBuilder;
+import io.muserver.murp.ReverseProxyBuilder;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.WebApplicationException;
 import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -23,8 +24,6 @@ import scaffolding.AppRunnerInstance;
 import scaffolding.RestClient;
 import scaffolding.Waiter;
 
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.WebApplicationException;
 import java.io.File;
 import java.net.URI;
 import java.util.HashSet;
@@ -40,6 +39,7 @@ import static scaffolding.ContentResponseMatcher.equalTo;
 import static scaffolding.Photocopier.projectRoot;
 
 public class RoutingTest {
+
     private static AppRunnerInstance latestAppRunnerWithoutNode;
     private static AppRunnerInstance oldAppRunner;
     private App router;
@@ -70,8 +70,6 @@ public class RoutingTest {
     }
 
     private App createStartedRouter() throws Exception {
-        SslContextFactory.Client sslContextFactory = new SslContextFactory.Client(true);
-        sslContextFactory.setEndpointIdentificationAlgorithm("HTTPS");
         App router = new App(AppRunnerRouterSettings.appRunnerRouterSettings()
             .withDataDir(dataDir)
             .withRunnerUrlVerifier(new RunnerUrlVerifier() {
@@ -81,7 +79,8 @@ public class RoutingTest {
                         throw new BadRequestException("That is an invalid runner URL");
                 }
             })
-            .withReverseProxyHttpClient(HttpClientBuilder.httpClient().withSslContextFactory(sslContextFactory).build())
+            .withAllowUntrustedInstances(true)
+            .withReverseProxyHttpClient(ReverseProxyBuilder.createHttpClientBuilder(true).build())
             .withMuServerBuilder(MuServerBuilder.muServer().withHttpPort(routerHttpPort).withHttpsPort(routerHttpsPort))
             .build());
         router.start();

@@ -6,15 +6,15 @@ import com.danielflower.apprunner.router.lib.mgmt.Runner;
 import io.muserver.*;
 import io.muserver.murp.ReverseProxy;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.util.StringContentProvider;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.ServerErrorException;
+import jakarta.ws.rs.ServerErrorException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,24 +80,26 @@ public class CreateAppHandler implements RouteHandler {
                 if (optTargetRunner.isPresent()) {
                     Runner targetRunner = optTargetRunner.get();
                     URI targetAppRunner = targetRunner.url.resolve("/api/v1/apps");
-                    org.eclipse.jetty.client.api.Request creationReq = client.POST(targetAppRunner)
-                        .content(new StringContentProvider(createBody));
+                    HttpRequest.Builder creationReqBuilder = HttpRequest.newBuilder(targetAppRunner)
+                        .method("POST", HttpRequest.BodyPublishers.ofString(createBody));
 
-                    ReverseProxy.setForwardedHeaders(request, creationReq, false, true);
-                    creationReq.header("Accept", "*/*"); // for old apprunner instances
-                    creationReq.header("Content-Type", request.headers().get("Content-Type"));
+                    ReverseProxy.setForwardedHeaders(request, creationReqBuilder, false, true);
+                    creationReqBuilder.header("Accept", "*/*"); // for old apprunner instances
+                    creationReqBuilder.header("Content-Type", request.headers().get("Content-Type"));
 
-                    log.info("Sending " + creationReq.getMethod() + " " + creationReq.getURI() + " with " + creationReq.getHeaders() + " and body " + createBody);
+                    var creationReq = creationReqBuilder.build();
 
-                    ContentResponse creationResp;
+                    log.info("Sending " + creationReq.method() + " " + creationReq.uri() + " with " + creationReq.headers() + " and body " + createBody);
+
+                    HttpResponse<String> creationResp;
                     String content;
                     try {
-                        creationResp = creationReq.send();
-                        content = creationResp.getContentAsString();
-                        log.info("Received " + creationResp.getStatus() + " with headers " + creationResp.getHeaders() + " and content " + content);
-                        if ((creationResp.getStatus() / 100) == 5) {
-                            log.warn("Got a " + creationResp.getStatus() + " from " + targetRunner.id);
-                            creationErrors.add(new CreationError(creationResp.getStatus(), content));
+                        creationResp = client.send(creationReq, HttpResponse.BodyHandlers.ofString());
+                        content = creationResp.body();
+                        log.info("Received " + creationResp.statusCode() + " with headers " + creationResp.headers() + " and content " + content);
+                        if ((creationResp.statusCode() / 100) == 5) {
+                            log.warn("Got a " + creationResp.statusCode() + " from " + targetRunner.id);
+                            creationErrors.add(new CreationError(creationResp.statusCode(), content));
                             throw new TargetServerErrorException();
                         }
                         log.info("Proxying app creation with " + creationResp);
@@ -114,9 +116,9 @@ public class CreateAppHandler implements RouteHandler {
                         excludedRunnerIDs.add(targetRunner.id);
                         continue;
                     }
-                    clientResp.status(creationResp.getStatus());
-                    clientResp.headers().add("Content-Type", creationResp.getHeaders().get("Content-Type"));
-                    if (creationResp.getStatus() == 201) {
+                    clientResp.status(creationResp.statusCode());
+                    clientResp.headers().add("Content-Type", creationResp.headers().firstValue("Content-Type"));
+                    if (creationResp.statusCode() == 201) {
                         log.info("Created new app: " + content);
                         JSONObject resp = new JSONObject(content);
                         String appName = resp.getString("name");

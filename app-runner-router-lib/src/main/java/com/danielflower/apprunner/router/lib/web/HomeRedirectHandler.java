@@ -5,7 +5,7 @@ import io.muserver.MuResponse;
 import io.muserver.Mutils;
 import io.muserver.RouteHandler;
 
-import javax.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotFoundException;
 import java.util.Map;
 
 public class HomeRedirectHandler implements RouteHandler {

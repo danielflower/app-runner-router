@@ -7,23 +7,23 @@ import io.muserver.MuRequest;
 import io.muserver.MuStats;
 import io.muserver.murp.ReverseProxy;
 import org.apache.commons.lang3.ObjectUtils;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.api.Request;
-import org.eclipse.jetty.http.HttpMethod;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +39,7 @@ public class SystemResource {
 
     private final Cluster cluster;
 
-    private org.eclipse.jetty.client.HttpClient httpClient;
+    private final HttpClient httpClient;
 
     public SystemResource(SystemInfo systemInfo, Cluster cluster, HttpClient httpClient) {
         this.systemInfo = systemInfo;
@@ -63,20 +63,19 @@ public class SystemResource {
 
     private JSONObject loadSystemInfoForRunner(MuRequest clientRequest, Runner runner) throws Exception {
         URI uri = runner.url.resolve("/api/v1/system");
-        Request req = httpClient.newRequest(uri)
-            .timeout(5, TimeUnit.SECONDS)
-            .method(HttpMethod.GET);
+        HttpRequest.Builder req = HttpRequest.newBuilder(uri)
+            .timeout(Duration.ofSeconds(5));
         if (clientRequest != null) {
             ReverseProxy.setForwardedHeaders(clientRequest, req, false, true);
         }
         JSONObject runnerJson = runner.toJSON();
         try {
-            ContentResponse resp = req.send();
-            if (resp.getStatus() == 200) {
-                runnerJson.put("system", new JSONObject(resp.getContentAsString()));
+            var resp = httpClient.send(req.build(), HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200) {
+                runnerJson.put("system", new JSONObject(resp.body()));
             } else {
                 runnerJson.put("system", erroredSystemJson())
-                    .put("error", "Unable to load system from " + uri + " - message was " + resp.getContentAsString());
+                    .put("error", "Unable to load system from " + uri + " - message was " + resp.body());
             }
         } catch (InterruptedException e) {
             throw e;
@@ -204,12 +203,12 @@ public class SystemResource {
                 if ((id + ".zip").equalsIgnoreCase(name)) {
                     URI zipUri = URI.create(sample.getString("url"));
                     try {
-                        Request targetRequest = httpClient.newRequest(zipUri)
-                            .method(HttpMethod.GET)
-                            .timeout(30, TimeUnit.SECONDS);
-                        ContentResponse targetResponse = targetRequest.send();
-                        if (targetResponse.getStatus() == 200) {
-                            Response.ResponseBuilder clientResponse = Response.ok(targetResponse.getContent());
+                        HttpRequest targetRequest = HttpRequest.newBuilder(zipUri)
+                            .timeout(Duration.ofSeconds(30))
+                            .build();
+                        var targetResponse = httpClient.send(targetRequest, HttpResponse.BodyHandlers.ofString());
+                        if (targetResponse.statusCode() == 200) {
+                            Response.ResponseBuilder clientResponse = Response.ok(targetResponse.body());
                             log.info("Return sample for " + name + " from " + zipUri);
                             return clientResponse.build();
                         }

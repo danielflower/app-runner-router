@@ -7,9 +7,7 @@ import com.danielflower.apprunner.router.lib.monitoring.BlockingUdpSender;
 import io.muserver.HttpsConfigBuilder;
 import io.muserver.MuServerBuilder;
 import io.muserver.Mutils;
-import io.muserver.murp.HttpClientBuilder;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
+import io.muserver.murp.ReverseProxyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,12 +46,7 @@ public class EntryPoint {
             if (Mutils.nullOrEmpty(defaultAppName)) {
                 log.info("No default app name set. You can set one with the " + Config.DEFAULT_APP_NAME + " property value.");
             }
-            HttpClient reverseProxyClient = HttpClientBuilder.httpClient()
-                .withIdleTimeoutMillis(idleTimeout)
-                .withMaxRequestHeadersSize(maxHeadersSize)
-                .withMaxConnectionsPerDestination(1024)
-                .withSslContextFactory(new SslContextFactory.Client(allowUntrustedInstances))
-                .build();
+            var reverseProxyClient = ReverseProxyBuilder.createHttpClientBuilder(allowUntrustedInstances).build();
             AppRunnerRouterSettings settings = appRunnerRouterSettings()
                 .withMuServerBuilder(MuServerBuilder.muServer()
                     .withHttp2Config(http2Config().enabled(http2Enabled))
@@ -73,18 +66,12 @@ public class EntryPoint {
                 .withDataDir(config.getOrCreateDir(Config.DATA_DIR))
                 .withDiscardClientForwarded(config.getBoolean(Config.PROXY_DISCARD_CLIENT_FORWARDED_HEADERS, false))
                 .withDefaultAppName(defaultAppName)
+                .withAllowUntrustedInstances(allowUntrustedInstances)
                 .withProxyTimeoutMillis(config.getInt(Config.PROXY_TOTAL_TIMEOUT, 20 * 60000))
                 .build();
             App app = new App(settings);
             app.start();
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                app.shutdown();
-                try {
-                    reverseProxyClient.stop();
-                } catch (Exception e) {
-                    log.info("Error while stopping reverse proxy client: " + e.getMessage());
-                }
-            }));
+            Runtime.getRuntime().addShutdownHook(new Thread(app::shutdown));
         } catch (Throwable t) {
             log.error("Error during startup", t);
             System.exit(1);

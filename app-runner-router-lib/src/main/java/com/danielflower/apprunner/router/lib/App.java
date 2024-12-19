@@ -9,13 +9,13 @@ import io.muserver.Method;
 import io.muserver.MuServer;
 import io.muserver.Mutils;
 import io.muserver.murp.ReverseProxyBuilder;
-import org.eclipse.jetty.client.HttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.NotFoundException;
+import jakarta.ws.rs.NotFoundException;
 import java.io.File;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,8 +42,7 @@ public class App {
 
         ProxyMap proxyMap = new ProxyMap();
 
-        this.standardHttpClient = new HttpClient(settings.reverseProxyHttpClient().getSslContextFactory());
-        standardHttpClient.start();
+        this.standardHttpClient = ReverseProxyBuilder.createHttpClientBuilder(settings.allowUntrustedInstances()).build();
 
         MapManager mapManager = new ClusterQueryingMapManager(proxyMap, standardHttpClient);
         Cluster cluster = Cluster.load(new File(settings.dataDir(), "cluster.json"), mapManager);
@@ -72,7 +71,7 @@ public class App {
                     .withOpenApiHtmlUrl("/router-api.html")
                 )
                 .addHandler(context("runner-proxy")
-                    .addHandler(new ReverseProxyBuilder()
+                    .addHandler(ReverseProxyBuilder.reverseProxy()
                         .withUriMapper(req -> {
                             Matcher matcher = proxyPattern.matcher(req.relativePath());
                             if (matcher.matches()) {
@@ -124,13 +123,6 @@ public class App {
             muServer.stop();
             log.info("Shutdown complete");
             muServer = null;
-        }
-        if (standardHttpClient != null) {
-            try {
-                standardHttpClient.stop();
-            } catch (Exception e) {
-                log.info("Error stopping cluster HTTP client: " + e.getMessage());
-            }
         }
     }
 }
