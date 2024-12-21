@@ -37,6 +37,7 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-exec</artifactId>
             <version>1.4.0</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Web server stuff -->
