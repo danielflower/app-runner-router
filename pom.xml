@@ -26,7 +26,7 @@
 
     <scm>
         <url>https://github.com/danielflower/app-runner-router</url>
-        <connection>scm:git:git@github.com:danielflower/app-runner-router.git</connection>
+        <connection>scm:git:https://github.com/danielflower/app-runner-router.git</connection>
     </scm>
 
     <inceptionYear>2016</inceptionYear>
