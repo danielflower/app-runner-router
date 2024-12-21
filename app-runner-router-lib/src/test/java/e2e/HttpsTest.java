@@ -10,6 +10,7 @@ import scaffolding.ContentResponseMatcher;
 import scaffolding.RestClient;
 
 import java.io.File;
+import java.net.ConnectException;
 import java.util.concurrent.ExecutionException;
 
 import static io.muserver.MuServerBuilder.muServer;
@@ -62,7 +63,7 @@ public class HttpsTest {
         try {
             client.getAppRunners();
             Assert.fail("Should not have worked");
-        } catch (ExecutionException e) {
+        } catch (ConnectException e) {
             // correct behaviour
         }
     }

@@ -10,7 +10,6 @@ import io.muserver.Mutils;
 import io.muserver.murp.ReverseProxyBuilder;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
-import org.eclipse.jetty.client.api.ContentResponse;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -33,8 +32,7 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.*;
 import static scaffolding.ContentResponseMatcher.equalTo;
 import static scaffolding.Photocopier.projectRoot;
 
@@ -108,17 +106,17 @@ public class RoutingTest {
         assertThat(httpClient.registerRunner(latestAppRunnerWithoutNode.id(), urlOfLatest, 1), equalTo(201, containsString(latestAppRunnerWithoutNode.id())));
         assertThat(httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 2), equalTo(201, containsString(oldAppRunner.id())));
 
-        ContentResponse appRunners = httpClient.getAppRunners();
-        assertThat(appRunners.getStatus(), is(200));
+        var appRunners = httpClient.getAppRunners();
+        assertThat(appRunners.statusCode(), is(200));
         JSONAssert.assertEquals("{ 'runners': [" +
             "  { 'id': 'app-runner-1', 'url': '" + urlOfLatest + "', 'appCount': 0, 'maxApps': 1, " + "'systemUrl': '" + urlOfLatest.resolve("/api/v1/system") + "', 'appsUrl': '" + urlOfLatest.resolve("/api/v1/apps") + "' }," +
             "  { 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'appCount': 0, 'maxApps': 2 }" +
-            "]}", appRunners.getContentAsString(), JSONCompareMode.LENIENT);
+            "]}", appRunners.body(), JSONCompareMode.LENIENT);
 
-        ContentResponse appRunner = httpClient.getRunner("app-runner-2");
-        assertThat(appRunner.getStatus(), is(200));
+        var appRunner = httpClient.getRunner("app-runner-2");
+        assertThat(appRunner.statusCode(), is(200));
         JSONAssert.assertEquals("{ 'id': 'app-runner-2', 'url': '" + oldAppRunner.httpUrl().toString() + "', 'maxApps': 2 }"
-            , appRunner.getContentAsString(), JSONCompareMode.LENIENT);
+            , appRunner.body(), JSONCompareMode.LENIENT);
 
         assertThat(httpClient.deleteRunner(oldAppRunner.id()), equalTo(200, containsString(oldAppRunner.id())));
         assertThat(httpClient.getRunner(oldAppRunner.id()), equalTo(404, containsString(oldAppRunner.id())));
@@ -127,7 +125,7 @@ public class RoutingTest {
 
     @Test
     public void runnersWithInvalidUrlsAreRejected() throws Exception {
-        ContentResponse resp = httpsClient.registerRunner("someid", URI.create("https://badurl.example.org"), 1);
+        var resp = httpsClient.registerRunner("someid", URI.create("https://badurl.example.org"), 1);
         assertThat(resp, equalTo(400, containsString("That is an invalid runner URL")));
     }
 
@@ -144,13 +142,13 @@ public class RoutingTest {
         httpsClient.deploy("app1");
         Waiter.waitForApp(httpsClient.targetURI(), "app1");
 
-        String headersFromOne = httpsClient.get("/app1/headers").getContentAsString();
+        String headersFromOne = httpsClient.get("/app1/headers").body();
 
         httpsClient.createApp(app2.gitUrl(), "app2");
         httpsClient.deploy("app2");
         Waiter.waitForApp(httpsClient.targetURI(), "app2");
 
-        String headersFromTwo = httpsClient.get("/app2/headers").getContentAsString();
+        String headersFromTwo = httpsClient.get("/app2/headers").body();
 
         assertThat(headersFromOne, containsString(";proto=https\r\n"));
         assertThat(headersFromOne, containsString(";proto=http\r\n"));
@@ -158,8 +156,8 @@ public class RoutingTest {
 
         assertThat(headersFromOne, containsString("X-Forwarded-Proto:https\r\n"));
         assertThat(headersFromTwo, containsString("X-Forwarded-Proto:https\r\n"));
-        assertThat(headersFromOne, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
-        assertThat(headersFromTwo, containsString("\r\nHost:" + httpsClient.targetURI().getAuthority() + "\r\n"));
+        assertThat(headersFromOne, containsString("Host:" + httpsClient.targetURI().getAuthority() + "\r\n"));
+        assertThat(headersFromTwo, containsString("Host:" + httpsClient.targetURI().getAuthority() + "\r\n"));
 
         httpsClient.stop("app1");
         httpsClient.stop("app2");
@@ -204,7 +202,7 @@ public class RoutingTest {
             httpsClient.createApp(app1.gitUrl(), appName);
             httpsClient.deploy(appName);
             Waiter.waitForApp(httpsClient.targetURI(), appName);
-            assertThat(httpsClient.get("/" + appName + "/slow?millis=" + waitTime).getStatus(), is(504));
+            assertThat(httpsClient.get("/" + appName + "/slow?millis=" + waitTime).statusCode(), is(504));
             httpsClient.stop(appName);
         }
     }
@@ -213,13 +211,13 @@ public class RoutingTest {
         AppRepo app1 = AppRepo.create("maven");
         AppRepo app2 = AppRepo.create("maven");
 
-        ContentResponse app1Creation = client.createApp(app1.gitUrl(), "app1");
-        assertThat("Error returned: " + app1Creation.getContentAsString(), app1Creation.getStatus(), is(201));
+        var app1Creation = client.createApp(app1.gitUrl(), "app1");
+        assertThat("Error returned: " + app1Creation.body(), app1Creation.statusCode(), is(201));
 
-        ContentResponse app1DuplicateCreation = client.createApp(app1.gitUrl(), "app1");
-        assertThat("Body returned: " + app1DuplicateCreation.getContentAsString(), app1DuplicateCreation.getStatus(), is(409));
+        var app1DuplicateCreation = client.createApp(app1.gitUrl(), "app1");
+        assertThat("Body returned: " + app1DuplicateCreation.body(), app1DuplicateCreation.statusCode(), is(409));
 
-        JSONObject app1Json = new JSONObject(app1Creation.getContentAsString());
+        JSONObject app1Json = new JSONObject(app1Creation.body());
         assertThat(app1Json.getString("url"), startsWith(client.routerUrl));
 
         client.deploy("app1");
@@ -236,22 +234,22 @@ public class RoutingTest {
         assertThat(numberOfApps(oldAppRunner), is(1));
 
         // a runner can be deleted and added back and the number reported is accurate
-        JSONObject savedInfo = new JSONObject(client.getRunner(latestAppRunner.id()).getContentAsString());
+        JSONObject savedInfo = new JSONObject(client.getRunner(latestAppRunner.id()).body());
         client.deleteRunner(latestAppRunner.id());
         client.registerRunner(latestAppRunner.id(), URI.create(savedInfo.getString("url")), savedInfo.getInt("maxApps"));
         assertThat(numberOfApps(latestAppRunner), is(1));
 
 
         // querying for all the apps returns a combined list
-        ContentResponse appsResponse = client.get("/api/v1/apps");
+        var appsResponse = client.get("/api/v1/apps");
         JSONAssert.assertEquals("{ " +
             "'appCount': 2," +
             "'apps': [ " +
             "{ 'name': 'app1', 'url': '" + client.targetURI().resolve("/app1/") + "' }," +
             "{ 'name': 'app2', 'url': '" + client.targetURI().resolve("/app2/") + "' }" +
-            "] }", appsResponse.getContentAsString(), JSONCompareMode.STRICT_ORDER);
+            "] }", appsResponse.body(), JSONCompareMode.STRICT_ORDER);
 
-        assertThat(appsResponse.getStatus(), is(200));
+        assertThat(appsResponse.statusCode(), is(200));
 
         assertThat(client.get("/api/v1/swagger.json"), equalTo(200, containsString("/apps/{name}")));
 
@@ -259,7 +257,7 @@ public class RoutingTest {
                 "{ id: " + latestAppRunner.id() + ", 'appCount': 1 }," +
                 "{ id: " + oldAppRunner.id() + ", 'appCount': 1 }" +
                 "] }",
-            client.getAppRunners().getContentAsString(), JSONCompareMode.LENIENT);
+            client.getAppRunners().body(), JSONCompareMode.LENIENT);
 
         client.stop("app1");
         client.stop("app2");
@@ -267,7 +265,7 @@ public class RoutingTest {
 
     private static int numberOfApps(AppRunnerInstance appRunner) throws Exception {
         RestClient c = RestClient.create(appRunner.httpUrl().toString());
-        JSONObject apps = new JSONObject(c.get("/api/v1/apps").getContentAsString());
+        JSONObject apps = new JSONObject(c.get("/api/v1/apps").body());
         return apps.getJSONArray("apps").length();
     }
 
@@ -343,7 +341,7 @@ public class RoutingTest {
         assertThat(httpClient.updateRunner(latestAppRunnerWithoutNode.id(), oldAppRunner.httpUrl(), 100),
             equalTo(200, Matchers.containsString("100")));
 
-        JSONArray runners = new JSONObject(httpClient.getAppRunners().getContentAsString()).getJSONArray("runners");
+        JSONArray runners = new JSONObject(httpClient.getAppRunners().body()).getJSONArray("runners");
         assertThat(runners.length(), is(1));
         JSONAssert.assertEquals("{ 'id': '" + latestAppRunnerWithoutNode.id() + "', 'url': '" + oldAppRunner.httpUrl() + "', maxApps: 100 }", runners.get(0).toString(), JSONCompareMode.LENIENT);
     }
@@ -355,9 +353,9 @@ public class RoutingTest {
         direct.createApp(app1.gitUrl(), "app1");
         direct.deploy(app1.name);
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
-        ContentResponse contentResponse = httpClient.get("/api/v1/apps/app1");
-        assertThat(contentResponse.getStatus(), is(200));
-        JSONObject json = new JSONObject(contentResponse.getContentAsString());
+        var contentResponse = httpClient.get("/api/v1/apps/app1");
+        assertThat(contentResponse.statusCode(), is(200));
+        JSONObject json = new JSONObject(contentResponse.body());
         JSONAssert.assertEquals("{ 'name': 'app1', 'url': '" + httpClient.routerUrl + "/app1/' }", json, JSONCompareMode.LENIENT);
 
         httpClient.stop(app1.name);
@@ -369,20 +367,20 @@ public class RoutingTest {
         AppRepo app1 = AppRepo.create("maven");
         httpClient.createApp(app1.gitUrl(), "my-app");
 
-        ContentResponse resp = httpClient.getRunnerApps(latestAppRunnerWithoutNode.id());
-        assertThat(resp.getStatus(), is(200));
-        assertThat(resp.getHeaders().get("Content-Type"), Matchers.equalTo("application/json"));
-        JSONObject appJson = new JSONObject(resp.getContentAsString());
+        var resp = httpClient.getRunnerApps(latestAppRunnerWithoutNode.id());
+        assertThat(resp.statusCode(), is(200));
+        assertThat(resp.headers().allValues("Content-Type"), contains("application/json"));
+        JSONObject appJson = new JSONObject(resp.body());
         assertThat(appJson.getJSONArray("apps").length(), is(1));
     }
 
     @Test
     public void theRunnerAppsAPIGivesTheSystemOfARunner() throws Exception {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
-        ContentResponse resp = httpClient.getRunnerSystem(latestAppRunnerWithoutNode.id());
-        assertThat(resp.getStatus(), is(200));
-        assertThat(resp.getHeaders().get("Content-Type"), Matchers.equalTo("application/json"));
-        JSONObject json = new JSONObject(resp.getContentAsString());
+        var resp = httpClient.getRunnerSystem(latestAppRunnerWithoutNode.id());
+        assertThat(resp.statusCode(), is(200));
+        assertThat(resp.headers().allValues("Content-Type"), contains("application/json"));
+        JSONObject json = new JSONObject(resp.body());
         assertThat(json.getBoolean("appRunnerStarted"), is(true));
     }
 
@@ -410,7 +408,7 @@ public class RoutingTest {
         httpClient.registerRunner(latestAppRunnerWithoutNode.id(), latestAppRunnerWithoutNode.httpUrl(), 1);
         httpClient.registerRunner(oldAppRunner.id(), oldAppRunner.httpUrl(), 2);
 
-        JSONObject system = new JSONObject(httpClient.getSystem().getContentAsString());
+        JSONObject system = new JSONObject(httpClient.getSystem().body());
 
         JSONArray runners = system.getJSONArray("runners");
         assertThat(runners.length(), is(2));
@@ -426,9 +424,9 @@ public class RoutingTest {
             ids.add(SystemResource.getSampleID(sample));
             String zipUrl = sample.getString("url");
             assertThat(zipUrl, containsString(httpClient.routerUrl));
-            ContentResponse zip = httpClient.getAbsolute(zipUrl);
-            MatcherAssert.assertThat(zipUrl, zip.getStatus(), CoreMatchers.is(200));
-            MatcherAssert.assertThat(zipUrl, zip.getHeaders().get("Content-Type"), CoreMatchers.is("application/zip"));
+            var zip = httpClient.getAbsolute(zipUrl);
+            MatcherAssert.assertThat(zipUrl, zip.statusCode(), CoreMatchers.is(200));
+            MatcherAssert.assertThat(zipUrl, zip.headers().allValues("Content-Type"), contains("application/zip"));
         }
 
         assertThat(ids, hasItem(CoreMatchers.equalTo("maven")));

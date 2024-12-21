@@ -7,7 +7,6 @@ import io.muserver.HttpsConfigBuilder;
 import io.muserver.MuServerBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -94,7 +93,7 @@ public class RunLocal {
         File repoRoot = new File(projectRoot(), "target/local/repos/" + System.currentTimeMillis());
         log.info("Creating git repos for apps at " + fullPath(repoRoot));
         FileUtils.forceMkdir(repoRoot);
-        JSONObject system = new JSONObject(client.getSystem().getContentAsString());
+        JSONObject system = new JSONObject(client.getSystem().body());
         JSONArray samples = system.getJSONArray("samples");
         for (Object sampleObj : samples) {
             JSONObject sample = (JSONObject) sampleObj;
@@ -106,8 +105,8 @@ public class RunLocal {
             }
             log.info("Going to download " + zipUrl);
             File zip = new File(repoRoot, id + ".zip");
-            ContentResponse zipResponse = client.getAbsolute(zipUrl);
-            FileUtils.writeByteArrayToFile(zip, zipResponse.getContent());
+            var zipResponse = client.getAbsoluteByteArray(zipUrl);
+            FileUtils.writeByteArrayToFile(zip, zipResponse.body());
             File target = new File(repoRoot, id);
             if (!target.mkdir()) {
                 throw new RuntimeException("Could not make " + fullPath(target));
@@ -143,9 +142,9 @@ public class RunLocal {
 
     private static void registerRunner(RestClientThatThrows client, AppRunnerInstance runner, int maxInstances) throws Exception {
         log.info("Registering " + runner.httpUrl() + " with the router");
-        ContentResponse contentResponse = client.registerRunner(runner.id(), runner.httpUrl(), maxInstances);
-        if (contentResponse.getStatus() != 201) {
-            throw new RuntimeException("Could not register " + runner.httpUrl() + ": " + contentResponse.getStatus() + " - " + contentResponse.getContentAsString());
+        var contentResponse = client.registerRunner(runner.id(), runner.httpUrl(), maxInstances);
+        if (contentResponse.statusCode() != 201) {
+            throw new RuntimeException("Could not register " + runner.httpUrl() + ": " + contentResponse.statusCode() + " - " + contentResponse.body());
         }
     }
 

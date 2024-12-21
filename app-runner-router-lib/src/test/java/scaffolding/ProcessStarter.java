@@ -59,7 +59,7 @@ public class ProcessStarter {
     }
 
     private Executor createExecutor(File workingDir, ExecuteWatchdog watchDog) {
-        Executor executor = new DefaultExecutor();
+        Executor executor = new DefaultExecutor.Builder().get();
         executor.setWorkingDirectory(workingDir);
         executor.setWatchdog(watchDog);
         executor.setStreamHandler(new PumpStreamHandler(new LogOutputStream() {

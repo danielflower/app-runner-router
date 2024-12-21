@@ -4,7 +4,6 @@ import com.danielflower.apprunner.router.lib.App;
 import com.danielflower.apprunner.router.lib.AppRunnerRouterSettings;
 import com.danielflower.apprunner.router.lib.mgmt.SystemInfo;
 import io.muserver.MuServerBuilder;
-import org.eclipse.jetty.client.api.ContentResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.*;
@@ -49,7 +48,7 @@ public class AvailabilityTest {
         httpClient.registerRunner(unhealthyRunner.id(), unhealthyRunner.httpUrl(), 10);
 
         httpClient.deploy("app1");
-        Waiter.waitForApp(httpClient.targetURI(), "app1");
+        Waiter.waitForApp(httpClient.targetURI(), "app1").close();
         assertThat(httpClient.get("/app1/"), ContentResponseMatcher.equalTo(200, containsString("My Maven App")));
 
         unhealthyRunner.shutDown();
@@ -71,8 +70,8 @@ public class AvailabilityTest {
     public void appsReturnsPartialListWhenAnAppRunnerIsAvailableAndHasErrorMessages() throws Exception {
 
         // querying for all the apps returns a combined list
-        ContentResponse appsResponse = httpClient.get("/api/v1/apps");
-        JSONObject actual = new JSONObject(appsResponse.getContentAsString());
+        var appsResponse = httpClient.get("/api/v1/apps");
+        JSONObject actual = new JSONObject(appsResponse.body());
         JSONAssert.assertEquals("{ " +
             "'appCount': 1," +
             "'apps': [ { 'name': 'app1', 'url': '" + httpClient.targetURI().resolve("/app1/") + "', 'appRunnerInstanceId': 'healthy-app-runner', } ]" +
@@ -84,8 +83,8 @@ public class AvailabilityTest {
 
     @Test
     public void systemCallStillReturnsEvenWhenRunnersAreUnavailable() throws Exception {
-        ContentResponse systemResponse = httpClient.get("/api/v1/system");
-        JSONObject all = new JSONObject(systemResponse.getContentAsString());
+        var systemResponse = httpClient.get("/api/v1/system");
+        JSONObject all = new JSONObject(systemResponse.body());
         assertThat(all.getBoolean("appRunnerStarted"), equalTo(false));
         JSONArray runners = all.getJSONArray("runners");
         assertThat(runners.length(), equalTo(2));

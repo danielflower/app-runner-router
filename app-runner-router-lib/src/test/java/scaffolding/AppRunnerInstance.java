@@ -109,7 +109,7 @@ public class AppRunnerInstance {
     public void clearApps() throws Exception {
         RestClient client = RestClient.create(httpUrl().toString());
         while (true) {
-            JSONArray apps = new JSONObject(client.get("/api/v1/apps").getContentAsString())
+            JSONArray apps = new JSONObject(client.get("/api/v1/apps").body())
                 .getJSONArray("apps");
             if (apps.isEmpty()) {
                 break;
