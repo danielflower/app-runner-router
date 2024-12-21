@@ -15,6 +15,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'maven'
 
       - name: Cache the Maven packages to speed up build
         uses: actions/cache@v4
