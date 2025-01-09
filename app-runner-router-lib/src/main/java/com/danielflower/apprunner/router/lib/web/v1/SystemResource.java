@@ -206,7 +206,7 @@ public class SystemResource {
                         HttpRequest targetRequest = HttpRequest.newBuilder(zipUri)
                             .timeout(Duration.ofSeconds(30))
                             .build();
-                        var targetResponse = httpClient.send(targetRequest, HttpResponse.BodyHandlers.ofString());
+                        var targetResponse = httpClient.send(targetRequest, HttpResponse.BodyHandlers.ofInputStream());
                         if (targetResponse.statusCode() == 200) {
                             Response.ResponseBuilder clientResponse = Response.ok(targetResponse.body());
                             log.info("Return sample for " + name + " from " + zipUri);

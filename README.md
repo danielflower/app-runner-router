@@ -45,7 +45,7 @@ locally against your local router.
 
 ### Change log
 
-* **1.12.0** Java 11 or later now required. Jetty client replaced with the built in java client.
+* **1.12.0** Java 17 or later now required. Jetty client replaced with the built in java client.
 * **1.10.3** Fixed UDP publishing of responses, removed access logs (for now) and added more stats to the system API.
 * **1.8.0** When creating an app with a `POST` to `/api/v1/apps` you can now ask the router to exclude a runner by putting its ID in the `X-Excluded-Runner` header (multiple headers allowed).
 * **1.6.0** If some app runner instances are unavailable, the /apps and /system calls will still return and will include details about the errors.
