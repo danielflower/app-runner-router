@@ -117,7 +117,10 @@ public class CreateAppHandler implements RouteHandler {
                         continue;
                     }
                     clientResp.status(creationResp.statusCode());
-                    clientResp.headers().add("Content-Type", creationResp.headers().firstValue("Content-Type"));
+                    Optional<String> creationRespContentType = creationResp.headers().firstValue("Content-Type");
+                    if (creationRespContentType.isPresent()) {
+                        clientResp.headers().add("Content-Type", creationRespContentType.get());
+                    }
                     if (creationResp.statusCode() == 201) {
                         log.info("Created new app: " + content);
                         JSONObject resp = new JSONObject(content);
