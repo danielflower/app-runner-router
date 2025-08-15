@@ -8,6 +8,8 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>app-runner-router-lib</artifactId>
     <version>3.0-SNAPSHOT</version>
+    <name>App Runner Router Library</name>
+    <description>The library version that lets you package the router in an existing project</description>
 
     <dependencies>
         <dependency>
